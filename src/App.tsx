@@ -154,7 +154,7 @@ const Hero = ({ settings }: { settings: SiteSettings }) => (
           className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-[#0A5C36] text-[10px] font-bold tracking-[0.4em] mb-8 uppercase"
         >
           <div className="w-1.5 h-1.5 bg-[#0A5C36] rounded-full shadow-[0_0_10px_#0A5C36]" />
-          Zeroone Production
+          {settings.site_name}
         </motion.div>
         
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-10 leading-[1.1] tracking-tighter">
@@ -487,13 +487,22 @@ const AdminDashboard = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'portfolio' | 'news'>('general');
   const [localSettings, setLocalSettings] = useState(settings);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
+    if (!isEditing) {
+      setLocalSettings(settings);
+    }
+  }, [settings, isEditing]);
 
   const handleSaveSettings = () => {
     onUpdateSettings(localSettings);
+    setIsEditing(false);
+  };
+
+  const handleChange = (updates: Partial<SiteSettings>) => {
+    setLocalSettings(prev => ({ ...prev, ...updates }));
+    setIsEditing(true);
   };
 
   const handlePortfolioLinkChange = (id: number, url: string) => {
@@ -556,7 +565,7 @@ const AdminDashboard = ({
                     <input 
                       type="text" 
                       value={localSettings.site_name}
-                      onChange={e => setLocalSettings({...localSettings, site_name: e.target.value})}
+                      onChange={e => handleChange({ site_name: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
@@ -566,13 +575,13 @@ const AdminDashboard = ({
                       <input 
                         type="color" 
                         value={localSettings.primary_color}
-                        onChange={e => setLocalSettings({...localSettings, primary_color: e.target.value})}
+                        onChange={e => handleChange({ primary_color: e.target.value })}
                         className="w-12 h-12 bg-transparent border-none outline-none cursor-pointer"
                       />
                       <input 
                         type="text" 
                         value={localSettings.primary_color}
-                        onChange={e => setLocalSettings({...localSettings, primary_color: e.target.value})}
+                        onChange={e => handleChange({ primary_color: e.target.value })}
                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                       />
                     </div>
@@ -582,7 +591,7 @@ const AdminDashboard = ({
                     <textarea 
                       rows={2}
                       value={localSettings.hero_title}
-                      onChange={e => setLocalSettings({...localSettings, hero_title: e.target.value})}
+                      onChange={e => handleChange({ hero_title: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all resize-none"
                     />
                   </div>
@@ -591,7 +600,7 @@ const AdminDashboard = ({
                     <textarea 
                       rows={2}
                       value={localSettings.hero_subtitle}
-                      onChange={e => setLocalSettings({...localSettings, hero_subtitle: e.target.value})}
+                      onChange={e => handleChange({ hero_subtitle: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all resize-none"
                     />
                   </div>
@@ -600,7 +609,7 @@ const AdminDashboard = ({
                     <input 
                       type="email" 
                       value={localSettings.contact_email}
-                      onChange={e => setLocalSettings({...localSettings, contact_email: e.target.value})}
+                      onChange={e => handleChange({ contact_email: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
@@ -609,7 +618,7 @@ const AdminDashboard = ({
                     <input 
                       type="text" 
                       value={localSettings.contact_phone}
-                      onChange={e => setLocalSettings({...localSettings, contact_phone: e.target.value})}
+                      onChange={e => handleChange({ contact_phone: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
@@ -618,7 +627,7 @@ const AdminDashboard = ({
                     <input 
                       type="text" 
                       value={localSettings.contact_address}
-                      onChange={e => setLocalSettings({...localSettings, contact_address: e.target.value})}
+                      onChange={e => handleChange({ contact_address: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
@@ -627,7 +636,7 @@ const AdminDashboard = ({
                     <input 
                       type="text" 
                       value={localSettings.youtube_url}
-                      onChange={e => setLocalSettings({...localSettings, youtube_url: e.target.value})}
+                      onChange={e => handleChange({ youtube_url: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
@@ -659,7 +668,7 @@ const AdminDashboard = ({
                     <input 
                       type="text" 
                       value={localSettings.categories}
-                      onChange={e => setLocalSettings({...localSettings, categories: e.target.value})}
+                      onChange={e => handleChange({ categories: e.target.value })}
                       placeholder="브이로그, 정보전달, 토크, 강의"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
