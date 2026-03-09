@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --animate-pulse-slow: pulse-slow 8s ease-in-out infinite;
+
+  @keyframes pulse-slow {
+    0%, 100% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --primary: #0A5C36;
+  --bg: #000000;
+}
+
+body {
+  background-color: var(--bg);
+  color: white;
+  font-family: var(--font-sans);
+}
+
+.deep-green-glow {
+  box-shadow: 0 0 20px rgba(10, 92, 54, 0.3);
+}
+
+.admin-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
