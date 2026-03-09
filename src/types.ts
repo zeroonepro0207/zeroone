@@ -9,6 +9,7 @@ export interface SiteSettings {
   contact_address: string;
   youtube_url: string;
   instagram_url: string;
+  categories: string; // Comma separated list
 }
 
 export interface Portfolio {
@@ -18,6 +19,7 @@ export interface Portfolio {
   thumbnail: string;
   video_url: string;
   category: string;
+  is_featured: number;
   created_at: string;
 }
 

@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,7 @@ db.exec(`
     thumbnail TEXT,
     video_url TEXT,
     category TEXT,
+    is_featured INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -34,6 +36,13 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// Add is_featured column if it doesn't exist
+try {
+  db.exec("ALTER TABLE portfolios ADD COLUMN is_featured INTEGER DEFAULT 0");
+} catch (e) {
+  // Column already exists
+}
 
 // Seed initial data if empty
 const settingsCount = db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
@@ -49,6 +58,7 @@ if (settingsCount.count === 0) {
   insertSetting.run("contact_address", "서울특별시 마포구 월드컵북로 179, 208호");
   insertSetting.run("youtube_url", "https://youtube.com/@zeroone");
   insertSetting.run("instagram_url", "https://instagram.com/zeroone");
+  insertSetting.run("categories", "브이로그,정보전달,토크,강의");
 
   const insertPortfolio = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category) VALUES (?, ?, ?, ?, ?)");
   insertPortfolio.run("성형외과 전문의 인터뷰 영상", "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", "https://picsum.photos/seed/hospital-1/800/450", "https://youtube.com", "Hospital YouTube");
@@ -67,6 +77,12 @@ if (settingsCount.count === 0) {
 db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run("contact_phone", "010-7788-9757");
 db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run("contact_address", "서울특별시 마포구 월드컵북로 179, 208호");
 db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run("hero_title", "세상을 바꾸는 단 하나의 영상\n제로원프로덕션");
+
+// Ensure categories exist
+const categoriesCheck = db.prepare("SELECT value FROM settings WHERE key = 'categories'").get() as { value: string } | undefined;
+if (!categoriesCheck) {
+  db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("categories", "브이로그,정보전달,토크,강의");
+}
 
 // Ensure at least 6 portfolios exist for demonstration
 const portfolioCount = db.prepare("SELECT COUNT(*) as count FROM portfolios").get() as { count: number };
@@ -115,9 +131,16 @@ async function startServer() {
   });
 
   app.post("/api/portfolios", (req, res) => {
-    const { title, description, thumbnail, video_url, category } = req.body;
-    const stmt = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category) VALUES (?, ?, ?, ?, ?)");
-    const info = stmt.run(title, description, thumbnail, video_url, category);
+    const { title, description, thumbnail, video_url, category, is_featured } = req.body;
+    const stmt = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category, is_featured) VALUES (?, ?, ?, ?, ?, ?)");
+    const info = stmt.run(
+      title || "새로운 프로젝트", 
+      description || "", 
+      thumbnail || "https://picsum.photos/seed/new/800/450", 
+      video_url || "", 
+      category || "",
+      is_featured || 0
+    );
     res.json({ id: info.lastInsertRowid });
   });
 
@@ -127,9 +150,14 @@ async function startServer() {
   });
 
   app.put("/api/portfolios/:id", (req, res) => {
-    const { title, description, thumbnail, video_url, category } = req.body;
-    db.prepare("UPDATE portfolios SET title = ?, description = ?, thumbnail = ?, video_url = ?, category = ? WHERE id = ?")
-      .run(title, description, thumbnail, video_url, category, req.params.id);
+    const updates = req.body;
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(", ");
+    const values = Object.values(updates);
+    
+    if (fields.length > 0) {
+      db.prepare(`UPDATE portfolios SET ${fields} WHERE id = ?`)
+        .run(...values, req.params.id);
+    }
     res.json({ success: true });
   });
 
@@ -151,7 +179,9 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(__dirname, "dist"));
+
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -169,4 +199,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

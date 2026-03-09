@@ -242,40 +242,74 @@ const DownloadSection = () => (
   </section>
 );
 
-const PortfolioGrid = ({ portfolios }: { portfolios: Portfolio[] }) => {
+const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], settings: SiteSettings }) => {
+  const [activeCategory, setActiveCategory] = useState('ALL');
+  const categories = ['ALL', ...settings.categories.split(',').map(c => c.trim())];
+
+  const filteredPortfolios = (activeCategory === 'ALL' 
+    ? [...portfolios].sort((a, b) => b.is_featured - a.is_featured)
+    : portfolios.filter(p => p.category === activeCategory)
+  ).slice(0, 6);
+
   return (
     <section id="portfolio" className="py-32 px-6 bg-black">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <h2 className="text-4xl font-bold mb-4 tracking-tighter">PORTFOLIO</h2>
-          <p className="text-white/50">우리의 감각으로 탄생한 결과물들입니다.</p>
+        <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div>
+            <h2 className="text-4xl font-bold mb-4 tracking-tighter">PORTFOLIO</h2>
+            <p className="text-white/50">우리의 감각으로 탄생한 결과물들입니다.</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                  activeCategory === cat 
+                    ? 'bg-[#0A5C36] border-[#0A5C36] text-white' 
+                    : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {portfolios.slice(0, 6).map((item, idx) => (
-            <motion.div 
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              className="group cursor-pointer"
-              onClick={() => window.open(item.video_url, '_blank')}
-            >
-              <div className="relative aspect-video overflow-hidden rounded-2xl bg-white/5">
-                <img 
-                  src={item.thumbnail} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                  alt={item.title}
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="w-16 h-16 bg-[#0A5C36] rounded-full flex items-center justify-center">
-                    <Play fill="white" size={24} />
+          <AnimatePresence mode="popLayout">
+            {filteredPortfolios.map((item, idx) => (
+              <motion.div 
+                key={item.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
+                className="group cursor-pointer"
+                onClick={() => window.open(item.video_url, '_blank')}
+              >
+                <div className="relative aspect-video overflow-hidden rounded-2xl bg-white/5">
+                  <img 
+                    src={item.thumbnail} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    alt={item.title}
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-16 h-16 bg-[#0A5C36] rounded-full flex items-center justify-center">
+                      <Play fill="white" size={24} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+                <div className="mt-4">
+                  <span className="text-[10px] font-bold text-[#0A5C36] uppercase tracking-widest">{item.category}</span>
+                  <h3 className="text-lg font-bold mt-1 group-hover:text-[#0A5C36] transition-colors">{item.title}</h3>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </section>
@@ -454,6 +488,10 @@ const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState<'general' | 'portfolio' | 'news'>('general');
   const [localSettings, setLocalSettings] = useState(settings);
 
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
   const handleSaveSettings = () => {
     onUpdateSettings(localSettings);
   };
@@ -603,52 +641,141 @@ const AdminDashboard = ({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
+                className="space-y-12"
               >
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-3xl font-bold">포트폴리오 관리</h2>
-                  <button 
-                    onClick={() => onAddPortfolio({
-                      title: '',
-                      description: '',
-                      thumbnail: 'https://picsum.photos/seed/new/800/450',
-                      video_url: '',
-                      category: ''
-                    })}
-                    className="flex items-center gap-2 px-6 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all"
-                  >
-                    <Plus size={18} /> 추가하기
-                  </button>
+                {/* Category Management */}
+                <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold">카테고리 관리</h3>
+                    <button 
+                      onClick={handleSaveSettings}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#0A5C36]/20 text-[#0A5C36] rounded-full text-xs font-bold hover:bg-[#0A5C36] hover:text-white transition-all"
+                    >
+                      <Save size={14} /> 카테고리 저장
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest">카테고리 목록 (쉼표로 구분)</label>
+                    <input 
+                      type="text" 
+                      value={localSettings.categories}
+                      onChange={e => setLocalSettings({...localSettings, categories: e.target.value})}
+                      placeholder="브이로그, 정보전달, 토크, 강의"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-white/20 leading-relaxed">
+                      * 카테고리를 추가하거나 삭제한 후 반드시 '카테고리 저장' 버튼을 눌러주세요.<br />
+                      * 삭제된 카테고리에 속한 포트폴리오는 다른 카테고리로 재지정해야 합니다.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  {portfolios.map(item => (
-                    <div key={item.id} className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="flex items-center gap-6">
-                        <img src={item.thumbnail} className="w-48 aspect-video object-cover rounded-xl" alt="" referrerPolicy="no-referrer" />
-                        <div className="flex-1 space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">유튜브 링크 (자동 썸네일 추출)</label>
-                            <div className="flex gap-2">
-                              <input 
-                                type="text" 
-                                value={item.video_url}
-                                onChange={e => handlePortfolioLinkChange(item.id, e.target.value)}
-                                placeholder="https://youtube.com/watch?v=..."
-                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
-                              />
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-3xl font-bold">포트폴리오 관리</h2>
+                      <p className="text-white/30 text-sm mt-1">
+                        메인 화면(ALL)에는 <span className="text-[#0A5C36] font-bold">최대 6개</span>의 영상이 표시됩니다. 
+                        (현재 <span className="text-white font-bold">{portfolios.filter(p => p.is_featured).length}개</span> 선택됨)
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => onAddPortfolio({
+                        title: '새로운 프로젝트',
+                        description: '',
+                        thumbnail: 'https://picsum.photos/seed/new/800/450',
+                        video_url: '',
+                        category: settings.categories.split(',')[0].trim(),
+                        is_featured: 0
+                      })}
+                      className="flex items-center gap-2 px-6 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all"
+                    >
+                      <Plus size={18} /> 추가하기
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    {portfolios.map(item => (
+                      <div key={item.id} className={`p-6 rounded-2xl bg-white/5 border transition-all ${item.is_featured ? 'border-[#0A5C36]' : 'border-white/10'}`}>
+                        <div className="flex flex-col md:flex-row gap-6">
+                          <div className="w-full md:w-64 aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group">
+                            <img src={item.thumbnail} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                            {item.is_featured === 1 && (
+                              <div className="absolute top-3 left-3 px-3 py-1 bg-[#0A5C36] text-white text-[10px] font-bold rounded-full shadow-lg">
+                                메인 노출 중
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">제목</label>
+                                  <input 
+                                    type="text" 
+                                    value={item.title}
+                                    onChange={e => onUpdatePortfolio(item.id, { title: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">카테고리</label>
+                                  <select 
+                                    value={item.category}
+                                    onChange={e => onUpdatePortfolio(item.id, { category: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
+                                  >
+                                    {settings.categories.split(',').map(cat => (
+                                      <option key={cat.trim()} value={cat.trim()}>{cat.trim()}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              
                               <button 
-                                onClick={() => onDeletePortfolio(item.id)}
-                                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                onClick={() => onUpdatePortfolio(item.id, { is_featured: item.is_featured ? 0 : 1 })}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold transition-all border ${
+                                  item.is_featured 
+                                    ? 'bg-[#0A5C36] border-[#0A5C36] text-white' 
+                                    : 'bg-white/5 border-white/10 text-white/30 hover:border-white/30'
+                                }`}
                               >
-                                <Trash2 size={20} />
+                                {item.is_featured ? '메인 노출 취소' : '메인 노출 선택'}
                               </button>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">설명</label>
+                              <textarea 
+                                value={item.description}
+                                onChange={e => onUpdatePortfolio(item.id, { description: e.target.value })}
+                                rows={2}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none resize-none"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">유튜브 링크 (자동 썸네일 추출)</label>
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text" 
+                                  value={item.video_url}
+                                  onChange={e => handlePortfolioLinkChange(item.id, e.target.value)}
+                                  placeholder="https://youtube.com/watch?v=..."
+                                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
+                                />
+                                <button 
+                                  onClick={() => onDeletePortfolio(item.id)}
+                                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                >
+                                  <Trash2 size={20} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -704,7 +831,19 @@ const AdminDashboard = ({
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>({
+    site_name: '제로원프로덕션',
+    hero_title: '세상을 바꾸는 단 하나의 영상\n제로원프로덕션',
+    hero_subtitle: '최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.',
+    primary_color: '#0A5C36',
+    bg_color: '#000000',
+    contact_email: 'contact@zeroone.pro',
+    contact_phone: '010-7788-9757',
+    contact_address: '서울특별시 마포구 월드컵북로 179, 208호',
+    youtube_url: 'https://youtube.com/@zeroone',
+    instagram_url: 'https://instagram.com/zeroone',
+    categories: '브이로그,정보전달,토크,강의'
+  });
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -712,13 +851,14 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [sRes, pRes, nRes] = await Promise.all([
-        fetch('/api/settings'),
-        fetch('/api/portfolios'),
-        fetch('/api/posts')
+        fetch('/api/settings').then(r => r.ok ? r.json() : null),
+        fetch('/api/portfolios').then(r => r.ok ? r.json() : []),
+        fetch('/api/posts').then(r => r.ok ? r.json() : [])
       ]);
-      setSettings(await sRes.json());
-      setPortfolios(await pRes.json());
-      setPosts(await nRes.json());
+      
+      if (sRes) setSettings(sRes);
+      setPortfolios(pRes);
+      setPosts(nRes);
     } catch (err) {
       console.error('Failed to fetch data', err);
     } finally {
@@ -776,7 +916,7 @@ export default function App() {
     fetchData();
   };
 
-  if (loading || !settings) {
+  if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-black">
         <div className="w-12 h-12 border-4 border-[#0A5C36] border-t-transparent rounded-full animate-spin" />
@@ -836,7 +976,7 @@ export default function App() {
               </div>
             </div>
           </section>
-          <PortfolioGrid portfolios={portfolios} />
+          <PortfolioGrid portfolios={portfolios} settings={settings} />
           <ContactSection settings={settings} />
           <DownloadSection />
           <Footer settings={settings} />
