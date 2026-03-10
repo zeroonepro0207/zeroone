@@ -244,7 +244,8 @@ const DownloadSection = () => (
 
 const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], settings: SiteSettings }) => {
   const [activeCategory, setActiveCategory] = useState('ALL');
-  const categories = ['ALL', ...settings.categories.split(',').map(c => c.trim())];
+  const categoriesStr = settings.categories || '브이로그,정보전달,토크,강의';
+  const categories = ['ALL', ...categoriesStr.split(',').map(c => c.trim())];
 
   const filteredPortfolios = (activeCategory === 'ALL' 
     ? [...portfolios].sort((a, b) => b.is_featured - a.is_featured)
@@ -694,7 +695,7 @@ const AdminDashboard = ({
                         description: '',
                         thumbnail: 'https://picsum.photos/seed/new/800/450',
                         video_url: '',
-                        category: settings.categories.split(',')[0].trim(),
+                        category: (settings.categories || '브이로그').split(',')[0].trim(),
                         is_featured: 0
                       })}
                       className="flex items-center gap-2 px-6 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all"
@@ -734,7 +735,7 @@ const AdminDashboard = ({
                                     onChange={e => onUpdatePortfolio(item.id, { category: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
                                   >
-                                    {settings.categories.split(',').map(cat => (
+                                    {(settings.categories || '브이로그,정보전달,토크,강의').split(',').map(cat => (
                                       <option key={cat.trim()} value={cat.trim()}>{cat.trim()}</option>
                                     ))}
                                   </select>

@@ -108,9 +108,30 @@ async function startServer() {
 
   // API Routes
   app.get("/api/settings", (req, res) => {
-    const settings = db.prepare("SELECT * FROM settings").all() as { key: string, value: string }[];
-    const settingsObj = settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
-    res.json(settingsObj);
+    try {
+      const settings = db.prepare("SELECT * FROM settings").all() as { key: string, value: string }[];
+      const settingsObj = settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
+      
+      // Ensure default values are present
+      const defaults = {
+        site_name: "제로원프로덕션",
+        hero_title: "세상을 바꾸는 단 하나의 영상\n제로원프로덕션",
+        hero_subtitle: "최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.",
+        primary_color: "#0A5C36",
+        bg_color: "#000000",
+        contact_email: "contact@zeroone.pro",
+        contact_phone: "010-7788-9757",
+        contact_address: "서울특별시 마포구 월드컵북로 179, 208호",
+        youtube_url: "https://youtube.com/@zeroone",
+        instagram_url: "https://instagram.com/zeroone",
+        categories: "브이로그,정보전달,토크,강의"
+      };
+
+      res.json({ ...defaults, ...settingsObj });
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.post("/api/settings", (req, res) => {
@@ -179,7 +200,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(__dirname, "dist"));
+  const isProd = process.env.NODE_ENV === "production";
 
   if (!isProd) {
     const vite = await createViteServer({
