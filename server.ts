@@ -212,7 +212,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(__dirname, "dist/index.html"));
+  const isProd = process.env.NODE_ENV === "production";
 
   if (!isProd) {
     const vite = await createViteServer({
