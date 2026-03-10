@@ -46,31 +46,42 @@ try {
 
 // Seed initial data if empty
 const settingsCount = db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
-if (settingsCount.count === 0) {
-  const insertSetting = db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
-  insertSetting.run("site_name", "제로원프로덕션");
-  insertSetting.run("hero_title", "세상을 바꾸는 단 하나의 영상\n제로원프로덕션");
-  insertSetting.run("hero_subtitle", "최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.");
-  insertSetting.run("primary_color", "#0A5C36");
-  insertSetting.run("bg_color", "#000000");
-  insertSetting.run("contact_email", "contact@zeroone.pro");
-  insertSetting.run("contact_phone", "010-7788-9757");
-  insertSetting.run("contact_address", "서울특별시 마포구 월드컵북로 179, 208호");
-  insertSetting.run("youtube_url", "https://youtube.com/@zeroone");
-  insertSetting.run("instagram_url", "https://instagram.com/zeroone");
-  insertSetting.run("categories", "브이로그,정보전달,토크,강의");
+const portfolioCount = db.prepare("SELECT COUNT(*) as count FROM portfolios").get() as { count: number };
 
-  const insertPortfolio = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category) VALUES (?, ?, ?, ?, ?)");
-  insertPortfolio.run("성형외과 전문의 인터뷰 영상", "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", "https://picsum.photos/seed/hospital-1/800/450", "https://youtube.com", "Hospital YouTube");
-  insertPortfolio.run("IT 기업 브랜드 필름", "혁신적인 기업 이미지를 강조한 시네마틱 홍보 영상", "https://picsum.photos/seed/corporate/800/450", "https://youtube.com", "Promotion Video");
-  insertPortfolio.run("공인중개사 자격증 핵심 강의", "전달력을 극대화한 깔끔한 자막과 모션 그래픽 강의 영상", "https://picsum.photos/seed/lecture/800/450", "https://youtube.com", "Lecture Video");
-  insertPortfolio.run("치과 임플란트 시술 안내", "환자들의 이해를 돕는 친절한 시술 과정 안내 영상", "https://picsum.photos/seed/hospital-2/800/450", "https://youtube.com", "Hospital YouTube");
-  insertPortfolio.run("글로벌 제조 기업 공장 스케치", "웅장한 스케일의 기업 시설 및 공정 홍보 영상", "https://picsum.photos/seed/factory/800/450", "https://youtube.com", "Promotion Video");
-  insertPortfolio.run("마케팅 실무 마스터 클래스", "실제 사례 중심의 몰입감 넘치는 온라인 강의 콘텐츠", "https://picsum.photos/seed/marketing/800/450", "https://youtube.com", "Lecture Video");
+if (settingsCount.count === 0 || portfolioCount.count === 0) {
+  console.log("Seeding initial data...");
+  
+  if (settingsCount.count === 0) {
+    const insertSetting = db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
+    insertSetting.run("site_name", "제로원프로덕션");
+    insertSetting.run("hero_title", "세상을 바꾸는 단 하나의 영상\n제로원프로덕션");
+    insertSetting.run("hero_subtitle", "최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.");
+    insertSetting.run("primary_color", "#0A5C36");
+    insertSetting.run("bg_color", "#000000");
+    insertSetting.run("contact_email", "contact@zeroone.pro");
+    insertSetting.run("contact_phone", "010-7788-9757");
+    insertSetting.run("contact_address", "서울특별시 마포구 월드컵북로 179, 208호");
+    insertSetting.run("youtube_url", "https://youtube.com/@zeroone");
+    insertSetting.run("instagram_url", "https://instagram.com/zeroone");
+    insertSetting.run("categories", "브이로그,정보전달,토크,강의");
+  }
+
+  if (portfolioCount.count === 0) {
+    const insertPortfolio = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category, is_featured) VALUES (?, ?, ?, ?, ?, ?)");
+    insertPortfolio.run("성형외과 전문의 인터뷰 영상", "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", "https://picsum.photos/seed/hospital-1/800/450", "https://youtube.com", "Hospital YouTube", 1);
+    insertPortfolio.run("IT 기업 브랜드 필름", "혁신적인 기업 이미지를 강조한 시네마틱 홍보 영상", "https://picsum.photos/seed/corporate/800/450", "https://youtube.com", "Promotion Video", 1);
+    insertPortfolio.run("공인중개사 자격증 핵심 강의", "전달력을 극대화한 깔끔한 자막과 모션 그래픽 강의 영상", "https://picsum.photos/seed/lecture/800/450", "https://youtube.com", "Lecture Video", 1);
+    insertPortfolio.run("치과 임플란트 시술 안내", "환자들의 이해를 돕는 친절한 시술 과정 안내 영상", "https://picsum.photos/seed/hospital-2/800/450", "https://youtube.com", "Hospital YouTube", 1);
+    insertPortfolio.run("글로벌 제조 기업 공장 스케치", "웅장한 스케일의 기업 시설 및 공정 홍보 영상", "https://picsum.photos/seed/factory/800/450", "https://youtube.com", "Promotion Video", 1);
+    insertPortfolio.run("마케팅 실무 마스터 클래스", "실제 사례 중심의 몰입감 넘치는 온라인 강의 콘텐츠", "https://picsum.photos/seed/marketing/800/450", "https://youtube.com", "Lecture Video", 1);
+  }
 
   const insertPost = db.prepare("INSERT INTO posts (title, content, author) VALUES (?, ?, ?)");
-  insertPost.run("2024년 영상 트렌드 분석", "올해 가장 주목받는 영상 편집 기법과 스타일을 소개합니다.", "관리자");
-  insertPost.run("제로원프로덕션 신규 장비 도입 안내", "더 나은 퀄리티를 위해 최신 8K 카메라를 도입했습니다.", "관리자");
+  const postsCount = db.prepare("SELECT COUNT(*) as count FROM posts").get() as { count: number };
+  if (postsCount.count === 0) {
+    insertPost.run("2024년 영상 트렌드 분석", "올해 가장 주목받는 영상 편집 기법과 스타일을 소개합니다.", "관리자");
+    insertPost.run("제로원프로덕션 신규 장비 도입 안내", "더 나은 퀄리티를 위해 최신 8K 카메라를 도입했습니다.", "관리자");
+  }
 }
 
 // Ensure the new contact_phone and address are set to the requested values
@@ -85,17 +96,18 @@ if (!categoriesCheck) {
 }
 
 // Ensure at least 6 portfolios exist for demonstration
-const portfolioCount = db.prepare("SELECT COUNT(*) as count FROM portfolios").get() as { count: number };
-if (portfolioCount.count < 6) {
-  const insertPortfolio = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category) VALUES (?, ?, ?, ?, ?)");
-  const needed = 6 - portfolioCount.count;
+const currentPortfolioCount = db.prepare("SELECT COUNT(*) as count FROM portfolios").get() as { count: number };
+if (currentPortfolioCount.count < 6) {
+  const insertPortfolio = db.prepare("INSERT INTO portfolios (title, description, thumbnail, video_url, category, is_featured) VALUES (?, ?, ?, ?, ?, ?)");
+  const needed = 6 - currentPortfolioCount.count;
   for (let i = 0; i < needed; i++) {
     insertPortfolio.run(
       `추가 포트폴리오 ${i + 1}`,
       "추가된 샘플 포트폴리오 설명입니다.",
       `https://picsum.photos/seed/extra-${i}/800/450`,
       "https://youtube.com",
-      "Hospital YouTube"
+      "Hospital YouTube",
+      1
     );
   }
 }
@@ -200,7 +212,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(__dirname, "dist/index.html"));
 
   if (!isProd) {
     const vite = await createViteServer({
