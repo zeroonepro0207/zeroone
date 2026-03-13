@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "Portfolio": {
+      "title": "Portfolio",
+      "description": "Portfolio item",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "video_url": { "type": "string" },
+        "category": { "type": "string" },
+        "is_featured": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "thumbnail"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Blog post",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Site settings",
+      "type": "object",
+      "properties": {
+        "site_name": { "type": "string" },
+        "hero_title": { "type": "string" },
+        "hero_subtitle": { "type": "string" },
+        "primary_color": { "type": "string" },
+        "bg_color": { "type": "string" },
+        "contact_email": { "type": "string" },
+        "contact_phone": { "type": "string" },
+        "contact_address": { "type": "string" },
+        "youtube_url": { "type": "string" },
+        "instagram_url": { "type": "string" },
+        "categories": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/portfolios": { "schema": "Portfolio", "description": "Collection of portfolios" },
+    "/posts": { "schema": "Post", "description": "Collection of posts" },
+    "/settings": { "schema": "Settings", "description": "Site settings" }
+  }
+}

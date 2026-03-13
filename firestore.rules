@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    // Document ID: site
+    // Fields:
+    //   - site_name: string (required)
+    //   - hero_title: string (required)
+    //   - hero_subtitle: string (required)
+    //   - primary_color: string (required)
+    //   - bg_color: string (required)
+    //   - contact_email: string (required)
+    //   - contact_phone: string (required)
+    //   - contact_address: string (required)
+    //   - youtube_url: string (required)
+    //   - instagram_url: string (required)
+    //   - categories: string (required)
+    //
+    // Collection: portfolios
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - description: string (required)
+    //   - thumbnail: string (required)
+    //   - video_url: string (required)
+    //   - category: string (required)
+    //   - is_featured: number (0 or 1)
+    //   - created_at: timestamp (required)
+    //
+    // Collection: posts
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - content: string (required)
+    //   - author: string (required)
+    //   - created_at: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "zeroonepro0207@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Validation Functions
+    // ===============================================================
+
+    function isValidSettings(data) {
+      return hasRequiredFields(['site_name', 'hero_title', 'hero_subtitle', 'primary_color', 'bg_color', 'contact_email', 'contact_phone', 'contact_address', 'youtube_url', 'instagram_url', 'categories']) &&
+             data.site_name is string && data.site_name.size() < 100 &&
+             data.hero_title is string && data.hero_title.size() < 500 &&
+             data.hero_subtitle is string && data.hero_subtitle.size() < 500 &&
+             data.primary_color is string && data.primary_color.size() < 20 &&
+             data.bg_color is string && data.bg_color.size() < 20 &&
+             data.contact_email is string && data.contact_email.size() < 100 &&
+             data.contact_phone is string && data.contact_phone.size() < 50 &&
+             data.contact_address is string && data.contact_address.size() < 200 &&
+             data.youtube_url is string && data.youtube_url.size() < 200 &&
+             data.instagram_url is string && data.instagram_url.size() < 200 &&
+             data.categories is string && data.categories.size() < 500;
+    }
+
+    function isValidPortfolio(data) {
+      return hasRequiredFields(['title', 'description', 'thumbnail', 'video_url', 'category', 'is_featured', 'created_at']) &&
+             data.title is string && data.title.size() < 200 &&
+             data.description is string && data.description.size() < 2000 &&
+             data.thumbnail is string && data.thumbnail.size() < 500 &&
+             data.video_url is string && data.video_url.size() < 500 &&
+             data.category is string && data.category.size() < 100 &&
+             data.is_featured is number && (data.is_featured == 0 || data.is_featured == 1) &&
+             data.created_at is timestamp;
+    }
+
+    function isValidPost(data) {
+      return hasRequiredFields(['title', 'content', 'author', 'created_at']) &&
+             data.title is string && data.title.size() < 200 &&
+             data.content is string && data.content.size() < 10000 &&
+             data.author is string && data.author.size() < 100 &&
+             data.created_at is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /settings/site {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+
+    match /portfolios/{portfolioId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPortfolio(request.resource.data);
+      allow update: if isAdmin() && isValidPortfolio(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPost(request.resource.data);
+      allow update: if isAdmin() && isValidPost(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}

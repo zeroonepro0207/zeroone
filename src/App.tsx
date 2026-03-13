@@ -24,9 +24,26 @@ import {
   Building2,
   GraduationCap,
   Download,
-  FileDown
+  FileDown,
+  LogIn
 } from 'lucide-react';
 import { SiteSettings, Portfolio, Post } from './types';
+import { db, auth, signInWithGoogle, logout } from './firebase';
+import { 
+  collection, 
+  onSnapshot, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 // --- Components ---
 
@@ -481,10 +498,10 @@ const AdminDashboard = ({
   posts: Post[],
   onUpdateSettings: (s: Partial<SiteSettings>) => void,
   onAddPortfolio: (p: Partial<Portfolio>) => void,
-  onDeletePortfolio: (id: number) => void,
-  onUpdatePortfolio: (id: number, p: Partial<Portfolio>) => void,
+  onDeletePortfolio: (id: string) => void,
+  onUpdatePortfolio: (id: string, p: Partial<Portfolio>) => void,
   onAddPost: (p: Partial<Post>) => void,
-  onDeletePost: (id: number) => void
+  onDeletePost: (id: string) => void
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'portfolio' | 'news'>('general');
   const [localSettings, setLocalSettings] = useState(settings);
@@ -506,7 +523,7 @@ const AdminDashboard = ({
     setIsEditing(true);
   };
 
-  const handlePortfolioLinkChange = (id: number, url: string) => {
+  const handlePortfolioLinkChange = (id: string, url: string) => {
     const thumbnail = getYoutubeThumbnail(url);
     onUpdatePortfolio(id, { video_url: url, thumbnail });
   };
@@ -817,7 +834,11 @@ const AdminDashboard = ({
                     <div key={post.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
                       <div>
                         <h4 className="font-bold text-lg mb-1">{post.title}</h4>
-                        <p className="text-white/40 text-sm">{new Date(post.created_at).toLocaleDateString()}</p>
+                        <p className="text-white/40 text-sm">
+                          {post.created_at instanceof Timestamp 
+                            ? post.created_at.toDate().toLocaleDateString() 
+                            : new Date(post.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                       <button 
                         onClick={() => onDeletePost(post.id)}
@@ -841,157 +862,224 @@ const AdminDashboard = ({
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<SiteSettings>({
-    site_name: '제로원프로덕션',
-    hero_title: '세상을 바꾸는 단 하나의 영상\n제로원프로덕션',
-    hero_subtitle: '최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.',
-    primary_color: '#0A5C36',
-    bg_color: '#000000',
-    contact_email: 'contact@zeroone.pro',
-    contact_phone: '010-7788-9757',
-    contact_address: '서울특별시 마포구 월드컵북로 179, 208호',
-    youtube_url: 'https://youtube.com/@zeroone',
-    instagram_url: 'https://instagram.com/zeroone',
-    categories: '브이로그,정보전달,토크,강의'
+    site_name: "제로원프로덕션",
+    hero_title: "세상을 바꾸는 단 하나의 영상\n제로원프로덕션",
+    hero_subtitle: "최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.",
+    primary_color: "#0A5C36",
+    bg_color: "#000000",
+    contact_email: "contact@zeroone.pro",
+    contact_phone: "010-7788-9757",
+    contact_address: "서울특별시 마포구 월드컵북로 179, 208호",
+    youtube_url: "https://youtube.com/@zeroone",
+    instagram_url: "https://instagram.com/zeroone",
+    categories: "브이로그,정보전달,토크,강의"
   });
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    try {
-      const [sRes, pRes, nRes] = await Promise.all([
-        fetch('/api/settings').then(r => r.ok ? r.json() : null),
-        fetch('/api/portfolios').then(r => r.ok ? r.json() : []),
-        fetch('/api/posts').then(r => r.ok ? r.json() : [])
-      ]);
-      
-      if (sRes) setSettings(sRes);
-      setPortfolios(pRes);
-      setPosts(nRes);
-    } catch (err) {
-      console.error('Failed to fetch data', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+
+    // Real-time settings
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
+      if (docSnap.exists()) {
+        setSettings(docSnap.data() as SiteSettings);
+      } else {
+        // Seed initial settings if missing
+        setDoc(doc(db, 'settings', 'site'), settings);
+      }
+    });
+
+    // Real-time portfolios
+    const qPortfolios = query(collection(db, 'portfolios'), orderBy('created_at', 'desc'));
+    const unsubscribePortfolios = onSnapshot(qPortfolios, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      })) as Portfolio[];
+      setPortfolios(items);
+      
+      // Seed initial portfolios if empty
+      if (items.length === 0) {
+        const initialPortfolios = [
+          { title: "성형외과 전문의 인터뷰 영상", description: "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", thumbnail: "https://picsum.photos/seed/hospital-1/800/450", video_url: "https://youtube.com", category: "Hospital YouTube", is_featured: 1, created_at: serverTimestamp() },
+          { title: "IT 기업 브랜드 필름", description: "혁신적인 기업 이미지를 강조한 시네마틱 홍보 영상", thumbnail: "https://picsum.photos/seed/corporate/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
+          { title: "공인중개사 자격증 핵심 강의", description: "전달력을 극대화한 깔끔한 자막과 모션 그래픽 강의 영상", thumbnail: "https://picsum.photos/seed/lecture/800/450", video_url: "https://youtube.com", category: "Lecture Video", is_featured: 1, created_at: serverTimestamp() },
+          { title: "치과 임플란트 시술 안내", description: "환자들의 이해를 돕는 친절한 시술 과정 안내 영상", thumbnail: "https://picsum.photos/seed/hospital-2/800/450", video_url: "https://youtube.com", category: "Hospital YouTube", is_featured: 1, created_at: serverTimestamp() },
+          { title: "글로벌 제조 기업 공장 스케치", description: "웅장한 스케일의 기업 시설 및 공정 홍보 영상", thumbnail: "https://picsum.photos/seed/factory/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
+          { title: "마케팅 실무 마스터 클래스", description: "실제 사례 중심의 몰입감 넘치는 온라인 강의 콘텐츠", thumbnail: "https://picsum.photos/seed/marketing/800/450", video_url: "https://youtube.com", category: "Lecture Video", is_featured: 1, created_at: serverTimestamp() }
+        ];
+        initialPortfolios.forEach(p => addDoc(collection(db, 'portfolios'), p));
+      }
+    });
+
+    // Real-time posts
+    const qPosts = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
+    const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      })) as Post[];
+      setPosts(items);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeSettings();
+      unsubscribePortfolios();
+      unsubscribePosts();
+    };
   }, []);
 
   const handleUpdateSettings = async (updates: Partial<SiteSettings>) => {
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    fetchData();
+    try {
+      await updateDoc(doc(db, 'settings', 'site'), updates);
+    } catch (error) {
+      console.error("Error updating settings:", error);
+    }
   };
 
-  const handleAddPortfolio = async (p: Partial<Portfolio>) => {
-    await fetch('/api/portfolios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(p)
-    });
-    fetchData();
+  const handleAddPortfolio = async (portfolio: Partial<Portfolio>) => {
+    try {
+      await addDoc(collection(db, 'portfolios'), {
+        ...portfolio,
+        created_at: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error adding portfolio:", error);
+    }
   };
 
-  const handleDeletePortfolio = async (id: number) => {
-    await fetch(`/api/portfolios/${id}`, { method: 'DELETE' });
-    fetchData();
+  const handleDeletePortfolio = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'portfolios', id));
+    } catch (error) {
+      console.error("Error deleting portfolio:", error);
+    }
   };
 
-  const handleUpdatePortfolio = async (id: number, updates: Partial<Portfolio>) => {
-    await fetch(`/api/portfolios/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    fetchData();
+  const handleUpdatePortfolio = async (id: string, updates: Partial<Portfolio>) => {
+    try {
+      await updateDoc(doc(db, 'portfolios', id), updates);
+    } catch (error) {
+      console.error("Error updating portfolio:", error);
+    }
   };
 
-  const handleAddPost = async (p: Partial<Post>) => {
-    await fetch('/api/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(p)
-    });
-    fetchData();
+  const handleAddPost = async (post: Partial<Post>) => {
+    try {
+      await addDoc(collection(db, 'posts'), {
+        ...post,
+        created_at: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error adding post:", error);
+    }
   };
 
-  const handleDeletePost = async (id: number) => {
-    await fetch(`/api/posts/${id}`, { method: 'DELETE' });
-    fetchData();
+  const handleDeletePost = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'posts', id));
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
   };
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-[#0A5C36] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-[#0A5C36] selection:text-white">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-[#0A5C36] selection:text-white">
       <Navbar onAdminClick={() => setIsAdmin(!isAdmin)} isAdmin={isAdmin} />
       
-      {isAdmin ? (
-        <AdminDashboard 
-          settings={settings}
-          portfolios={portfolios}
-          posts={posts}
-          onUpdateSettings={handleUpdateSettings}
-          onAddPortfolio={handleAddPortfolio}
-          onDeletePortfolio={handleDeletePortfolio}
-          onUpdatePortfolio={handleUpdatePortfolio}
-          onAddPost={handleAddPost}
-          onDeletePost={handleDeletePost}
-        />
-      ) : (
-        <main>
-          <Hero settings={settings} />
-          <section id="services" className="py-32 px-6 border-y border-white/5">
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                <div className="space-y-6 group">
-                  <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                    <Stethoscope size={32} />
-                  </div>
-                  <h3 className="text-2xl font-bold">병원 유튜브</h3>
-                  <p className="text-white/50 leading-relaxed">
-                    병원 전문 브랜딩을 위한 유튜브 채널 기획부터 촬영, 편집까지. 신뢰감을 주는 고퀄리티 의료 콘텐츠를 제작합니다.
-                  </p>
+      <main>
+        {isAdmin ? (
+          user ? (
+            <AdminDashboard 
+              settings={settings}
+              portfolios={portfolios}
+              posts={posts}
+              onUpdateSettings={handleUpdateSettings}
+              onAddPortfolio={handleAddPortfolio}
+              onDeletePortfolio={handleDeletePortfolio}
+              onUpdatePortfolio={handleUpdatePortfolio}
+              onAddPost={handleAddPost}
+              onDeletePost={handleDeletePost}
+            />
+          ) : (
+            <div className="min-h-screen flex items-center justify-center p-6">
+              <div className="max-w-md w-full p-12 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl text-center">
+                <div className="w-20 h-20 bg-[#0A5C36]/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                  <LayoutDashboard size={40} className="text-[#0A5C36]" />
                 </div>
-                <div className="space-y-6 group">
-                  <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                    <Building2 size={32} />
-                  </div>
-                  <h3 className="text-2xl font-bold">병원·기업 홍보영상</h3>
-                  <p className="text-white/50 leading-relaxed">
-                    브랜드의 가치를 시각적으로 극대화하는 시네마틱 홍보 영상을 제작합니다. 전문성과 신뢰를 담은 최상의 결과물을 보장합니다.
-                  </p>
-                </div>
-                <div className="space-y-6 group">
-                  <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                    <GraduationCap size={32} />
-                  </div>
-                  <h3 className="text-2xl font-bold">강의영상</h3>
-                  <p className="text-white/50 leading-relaxed">
-                    전달력을 높이는 깔끔한 편집과 자막 디자인으로 학습 효율을 극대화하는 전문 교육 및 강의 영상을 제작합니다.
-                  </p>
-                </div>
+                <h2 className="text-3xl font-bold mb-4 tracking-tight">관리자 로그인</h2>
+                <p className="text-white/40 mb-10 leading-relaxed">
+                  포트폴리오와 사이트 설정을 관리하려면<br />로그인이 필요합니다.
+                </p>
+                <button 
+                  onClick={signInWithGoogle}
+                  className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all flex items-center justify-center gap-3"
+                >
+                  <LogIn size={20} /> 구글로 로그인하기
+                </button>
               </div>
             </div>
-          </section>
-          <PortfolioGrid portfolios={portfolios} settings={settings} />
-          <ContactSection settings={settings} />
-          <DownloadSection />
-          <Footer settings={settings} />
-        </main>
-      )}
+          )
+        ) : (
+          <>
+            <Hero settings={settings} />
+            <section id="services" className="py-32 px-6 border-y border-white/5">
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                  <div className="space-y-6 group">
+                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                      <Stethoscope size={32} />
+                    </div>
+                    <h3 className="text-2xl font-bold">병원 유튜브</h3>
+                    <p className="text-white/50 leading-relaxed">
+                      병원 전문 브랜딩을 위한 유튜브 채널 기획부터 촬영, 편집까지. 신뢰감을 주는 고퀄리티 의료 콘텐츠를 제작합니다.
+                    </p>
+                  </div>
+                  <div className="space-y-6 group">
+                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                      <Building2 size={32} />
+                    </div>
+                    <h3 className="text-2xl font-bold">병원·기업 홍보영상</h3>
+                    <p className="text-white/50 leading-relaxed">
+                      브랜드의 가치를 시각적으로 극대화하는 시네마틱 홍보 영상을 제작합니다. 전문성과 신뢰를 담은 최상의 결과물을 보장합니다.
+                    </p>
+                  </div>
+                  <div className="space-y-6 group">
+                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                      <GraduationCap size={32} />
+                    </div>
+                    <h3 className="text-2xl font-bold">강의영상</h3>
+                    <p className="text-white/50 leading-relaxed">
+                      전달력을 높이는 깔끔한 편집과 자막 디자인으로 학습 효율을 극대화하는 전문 교육 및 강의 영상을 제작합니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <DownloadSection />
+            <PortfolioGrid portfolios={portfolios} settings={settings} />
+            <ContactSection settings={settings} />
+          </>
+        )}
+      </main>
+
+      <Footer settings={settings} />
     </div>
   );
 }

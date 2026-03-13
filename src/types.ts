@@ -13,20 +13,20 @@ export interface SiteSettings {
 }
 
 export interface Portfolio {
-  id: number;
+  id: string;
   title: string;
   description: string;
   thumbnail: string;
   video_url: string;
   category: string;
   is_featured: number;
-  created_at: string;
+  created_at: any;
 }
 
 export interface Post {
-  id: number;
+  id: string;
   title: string;
   content: string;
   author: string;
-  created_at: string;
+  created_at: any;
 }
