@@ -1072,8 +1072,8 @@ export default function App() {
                 </div>
               </div>
             </section>
-            <DownloadSection />
             <PortfolioGrid portfolios={portfolios} settings={settings} />
+            <DownloadSection />
             <ContactSection settings={settings} />
           </>
         )}
