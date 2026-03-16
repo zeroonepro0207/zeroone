@@ -180,8 +180,8 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
           <button onClick={() => scrollTo('home')} className="hover:text-white transition-colors">홈</button>
-          <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
           <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
+          <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
           <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">문의하기</button>
           <button 
             onClick={onAdminClick}
@@ -220,8 +220,8 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
           >
             <div className="px-6 py-8 flex flex-col gap-6 text-lg font-medium">
               <button onClick={() => scrollTo('home')} className="text-left hover:text-[#0A5C36] transition-colors">홈</button>
-              <button onClick={() => scrollTo('portfolio')} className="text-left hover:text-[#0A5C36] transition-colors">포트폴리오</button>
               <button onClick={() => scrollTo('services')} className="text-left hover:text-[#0A5C36] transition-colors">서비스</button>
+              <button onClick={() => scrollTo('portfolio')} className="text-left hover:text-[#0A5C36] transition-colors">포트폴리오</button>
               <button onClick={() => scrollTo('contact')} className="text-left hover:text-[#0A5C36] transition-colors">문의하기</button>
             </div>
           </motion.div>
@@ -322,7 +322,7 @@ const Hero = ({ settings }: { settings: SiteSettings }) => (
 );
 
 const DownloadSection = () => (
-  <section className="py-20 px-6 bg-[#050505] border-t border-white/5">
+  <section id="download" className="py-20 px-6 bg-[#050505] border-t border-white/5">
     <div className="max-w-7xl mx-auto">
       <div className="bg-gradient-to-br from-[#0A5C36]/20 to-transparent border border-white/10 rounded-[2.5rem] p-12 flex flex-col md:flex-row items-center justify-between gap-12 overflow-hidden relative group">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#0A5C36]/10 rounded-full blur-[100px] group-hover:bg-[#0A5C36]/20 transition-all duration-700" />
@@ -992,6 +992,8 @@ export default function App() {
 
     const isAdminUser = (u: User | null) => u?.email === 'zeroonepro0207@gmail.com';
 
+    console.log("Current Domain for Firebase Auth:", window.location.hostname);
+
     // Real-time settings
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) {
@@ -1134,9 +1136,20 @@ export default function App() {
                   <h2 className="text-3xl font-bold mb-4 tracking-tight">관리자 로그인</h2>
                   <p className="text-white/40 mb-10 leading-relaxed">
                     포트폴리오와 사이트 설정을 관리하려면<br />로그인이 필요합니다.
+                    <br />
+                    <span className="text-[10px] mt-2 block text-white/20">
+                      * 배포 환경에서 로그인이 되지 않을 경우, Firebase 콘솔의 '승인된 도메인'에 현재 URL이 등록되어 있는지 확인해주세요.
+                    </span>
                   </p>
                   <button 
-                    onClick={signInWithGoogle}
+                    onClick={async () => {
+                      try {
+                        await signInWithGoogle();
+                      } catch (error: any) {
+                        console.error("Login failed:", error);
+                        alert(`로그인에 실패했습니다: ${error.message || '알 수 없는 오류'}\n\n브라우저의 팝업 차단 설정을 확인하거나, Firebase 콘솔에서 현재 도메인이 승인되었는지 확인해주세요.`);
+                      }
+                    }}
                     className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all flex items-center justify-center gap-3"
                   >
                     <LogIn size={20} /> 구글로 로그인하기
@@ -1147,7 +1160,6 @@ export default function App() {
           ) : (
             <>
               <Hero settings={settings} />
-              <PortfolioGrid portfolios={portfolios} settings={settings} />
               <section id="services" className="py-32 px-6 border-y border-white/5">
                 <div className="max-w-7xl mx-auto">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -1181,8 +1193,9 @@ export default function App() {
                   </div>
                 </div>
               </section>
-              <DownloadSection />
+              <PortfolioGrid portfolios={portfolios} settings={settings} />
               <ContactSection settings={settings} />
+              <DownloadSection />
             </>
           )}
         </main>
