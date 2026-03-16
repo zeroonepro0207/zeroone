@@ -1024,9 +1024,9 @@ export default function App() {
   const [logoClickCount, setLogoClickCount] = useState(0);
 
   useEffect(() => {
-    // Check URL for ?admin or ?admin=true
+    // Check URL for ?admin or pathname /admin
     const params = new URLSearchParams(window.location.search);
-    if (params.has('admin')) {
+    if (params.has('admin') || window.location.pathname === '/admin') {
       setShowAdminAccess(true);
     }
 
@@ -1035,6 +1035,10 @@ export default function App() {
       // If already logged in as admin, always show access
       if (user?.email === 'zeroonepro0207@gmail.com') {
         setShowAdminAccess(true);
+        // If they specifically navigated to /admin, enter admin mode automatically
+        if (window.location.pathname === '/admin') {
+          setIsAdmin(true);
+        }
       }
     });
 
