@@ -152,7 +152,21 @@ class ErrorBoundary extends React.Component<any, any> {
 
 // --- Components ---
 
-const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: boolean }) => {
+const Navbar = ({ 
+  onAdminClick, 
+  isAdmin, 
+  showAdminAccess, 
+  setShowAdminAccess, 
+  logoClickCount, 
+  setLogoClickCount 
+}: { 
+  onAdminClick: () => void, 
+  isAdmin: boolean,
+  showAdminAccess: boolean,
+  setShowAdminAccess: (show: boolean) => void,
+  logoClickCount: number,
+  setLogoClickCount: (count: number) => void
+}) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const scrollTo = (id: string) => {
@@ -1145,7 +1159,14 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-black text-white font-sans selection:bg-[#0A5C36] selection:text-white">
-        <Navbar onAdminClick={() => setIsAdmin(!isAdmin)} isAdmin={isAdmin} />
+        <Navbar 
+          onAdminClick={() => setIsAdmin(!isAdmin)} 
+          isAdmin={isAdmin}
+          showAdminAccess={showAdminAccess}
+          setShowAdminAccess={setShowAdminAccess}
+          logoClickCount={logoClickCount}
+          setLogoClickCount={setLogoClickCount}
+        />
         
         <main>
           {isAdmin ? (
