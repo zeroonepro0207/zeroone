@@ -583,17 +583,6 @@ const Footer = ({ settings }: { settings: SiteSettings }) => (
         <p className="text-white/40 max-w-sm mb-8">
           우리는 단순한 영상 제작을 넘어, 브랜드의 본질을 담아내는 시각적 예술을 지향합니다.
         </p>
-        <div className="flex gap-4">
-          <a href={settings.youtube_url} target="_blank" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#0A5C36] transition-colors">
-            <Youtube size={20} />
-          </a>
-          <a href={settings.instagram_url} target="_blank" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#0A5C36] transition-colors">
-            <Instagram size={20} />
-          </a>
-          <a href={`mailto:${settings.contact_email}`} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#0A5C36] transition-colors">
-            <Mail size={20} />
-          </a>
-        </div>
       </div>
       <div className="grid grid-cols-1 gap-16">
         <div>
