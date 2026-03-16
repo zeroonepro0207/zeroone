@@ -169,10 +169,27 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
     }, 100);
   };
 
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    if (newCount >= 5) {
+      setShowAdminAccess(true);
+      setLogoClickCount(0);
+    }
+    // Reset count after 2 seconds of inactivity
+    setTimeout(() => setLogoClickCount(0), 2000);
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <div className="text-2xl font-bold tracking-tighter flex items-center gap-2 cursor-pointer" onClick={() => scrollTo('home')}>
+        <div 
+          className="text-2xl font-bold tracking-tighter flex items-center gap-2 cursor-pointer select-none" 
+          onClick={() => {
+            scrollTo('home');
+            handleLogoClick();
+          }}
+        >
           <div className="w-8 h-8 bg-[#0A5C36] rounded-sm flex items-center justify-center text-xs">01</div>
           <span>ZERO ONE</span>
         </div>
@@ -183,23 +200,28 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
           <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
           <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
           <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">문의하기</button>
-          <button 
-            onClick={onAdminClick}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all"
-          >
-            {isAdmin ? <LogOut size={16} /> : <LayoutDashboard size={16} />}
-            {isAdmin ? '나가기' : '관리자'}
-          </button>
+          
+          {showAdminAccess && (
+            <button 
+              onClick={onAdminClick}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-white"
+            >
+              {isAdmin ? <LogOut size={16} /> : <LayoutDashboard size={16} />}
+              {isAdmin ? '나가기' : '관리자'}
+            </button>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
         <div className="md:hidden flex items-center gap-4">
-          <button 
-            onClick={onAdminClick}
-            className="p-2 bg-white/5 rounded-full border border-white/10"
-          >
-            {isAdmin ? <LogOut size={18} /> : <LayoutDashboard size={18} />}
-          </button>
+          {showAdminAccess && (
+            <button 
+              onClick={onAdminClick}
+              className="p-2 bg-white/5 rounded-full border border-white/10 text-white"
+            >
+              {isAdmin ? <LogOut size={18} /> : <LayoutDashboard size={18} />}
+            </button>
+          )}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 text-white"
@@ -984,10 +1006,22 @@ export default function App() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdminAccess, setShowAdminAccess] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
 
   useEffect(() => {
+    // Check URL for ?admin or ?admin=true
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('admin')) {
+      setShowAdminAccess(true);
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
+      // If already logged in as admin, always show access
+      if (user?.email === 'zeroonepro0207@gmail.com') {
+        setShowAdminAccess(true);
+      }
     });
 
     const isAdminUser = (u: User | null) => u?.email === 'zeroonepro0207@gmail.com';
