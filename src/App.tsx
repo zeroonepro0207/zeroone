@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, Component, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
@@ -25,7 +25,8 @@ import {
   GraduationCap,
   Download,
   FileDown,
-  LogIn
+  LogIn,
+  AlertCircle
 } from 'lucide-react';
 import { SiteSettings, Portfolio, Post } from './types';
 import { db, auth, signInWithGoogle, logout } from './firebase';
@@ -44,6 +45,110 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
+
+// --- Error Handling ---
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<any, any> {
+  state = { hasError: false, error: null as any };
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    const { hasError, error } = this.state;
+    if (hasError) {
+      let errorMessage = "알 수 없는 오류가 발생했습니다.";
+      try {
+        if (error?.message) {
+          const parsed = JSON.parse(error.message);
+          if (parsed.error && parsed.error.includes("permissions")) {
+            errorMessage = "권한이 없거나 접근이 거부되었습니다. 관리자 계정으로 로그인되어 있는지 확인해주세요.";
+          }
+        }
+      } catch (e) {
+        // Not JSON
+      }
+
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-6">
+          <div className="max-w-md w-full p-8 rounded-3xl bg-white/5 border border-white/10 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+            <h2 className="text-2xl font-bold mb-4">오류 발생</h2>
+            <p className="text-white/60 mb-8">{errorMessage}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (this as any).props.children;
+  }
+}
 
 // --- Components ---
 
@@ -75,8 +180,8 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
           <button onClick={() => scrollTo('home')} className="hover:text-white transition-colors">홈</button>
-          <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
           <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
+          <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
           <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">문의하기</button>
           <button 
             onClick={onAdminClick}
@@ -115,8 +220,8 @@ const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: 
           >
             <div className="px-6 py-8 flex flex-col gap-6 text-lg font-medium">
               <button onClick={() => scrollTo('home')} className="text-left hover:text-[#0A5C36] transition-colors">홈</button>
-              <button onClick={() => scrollTo('services')} className="text-left hover:text-[#0A5C36] transition-colors">서비스</button>
               <button onClick={() => scrollTo('portfolio')} className="text-left hover:text-[#0A5C36] transition-colors">포트폴리오</button>
+              <button onClick={() => scrollTo('services')} className="text-left hover:text-[#0A5C36] transition-colors">서비스</button>
               <button onClick={() => scrollTo('contact')} className="text-left hover:text-[#0A5C36] transition-colors">문의하기</button>
             </div>
           </motion.div>
@@ -885,15 +990,17 @@ export default function App() {
       setUser(user);
     });
 
+    const isAdminUser = (u: User | null) => u?.email === 'zeroonepro0207@gmail.com';
+
     // Real-time settings
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) {
         setSettings(docSnap.data() as SiteSettings);
-      } else {
-        // Seed initial settings if missing
-        setDoc(doc(db, 'settings', 'site'), settings);
+      } else if (isAdminUser(auth.currentUser)) {
+        // Seed initial settings if missing AND user is admin
+        setDoc(doc(db, 'settings', 'site'), settings).catch(err => handleFirestoreError(err, OperationType.WRITE, 'settings/site'));
       }
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/site'));
 
     // Real-time portfolios
     const qPortfolios = query(collection(db, 'portfolios'), orderBy('created_at', 'desc'));
@@ -904,8 +1011,8 @@ export default function App() {
       })) as Portfolio[];
       setPortfolios(items);
       
-      // Seed initial portfolios if empty
-      if (items.length === 0) {
+      // Seed initial portfolios if empty AND user is admin
+      if (items.length === 0 && isAdminUser(auth.currentUser)) {
         const initialPortfolios = [
           { title: "성형외과 전문의 인터뷰 영상", description: "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", thumbnail: "https://picsum.photos/seed/hospital-1/800/450", video_url: "https://youtube.com", category: "Hospital YouTube", is_featured: 1, created_at: serverTimestamp() },
           { title: "IT 기업 브랜드 필름", description: "혁신적인 기업 이미지를 강조한 시네마틱 홍보 영상", thumbnail: "https://picsum.photos/seed/corporate/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
@@ -914,9 +1021,9 @@ export default function App() {
           { title: "글로벌 제조 기업 공장 스케치", description: "웅장한 스케일의 기업 시설 및 공정 홍보 영상", thumbnail: "https://picsum.photos/seed/factory/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
           { title: "마케팅 실무 마스터 클래스", description: "실제 사례 중심의 몰입감 넘치는 온라인 강의 콘텐츠", thumbnail: "https://picsum.photos/seed/marketing/800/450", video_url: "https://youtube.com", category: "Lecture Video", is_featured: 1, created_at: serverTimestamp() }
         ];
-        initialPortfolios.forEach(p => addDoc(collection(db, 'portfolios'), p));
+        initialPortfolios.forEach(p => addDoc(collection(db, 'portfolios'), p).catch(err => handleFirestoreError(err, OperationType.CREATE, 'portfolios')));
       }
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'portfolios'));
 
     // Real-time posts
     const qPosts = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
@@ -927,7 +1034,7 @@ export default function App() {
       })) as Post[];
       setPosts(items);
       setLoading(false);
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'posts'));
 
     return () => {
       unsubscribeAuth();
@@ -941,7 +1048,7 @@ export default function App() {
     try {
       await updateDoc(doc(db, 'settings', 'site'), updates);
     } catch (error) {
-      console.error("Error updating settings:", error);
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/site');
     }
   };
 
@@ -952,7 +1059,7 @@ export default function App() {
         created_at: serverTimestamp()
       });
     } catch (error) {
-      console.error("Error adding portfolio:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'portfolios');
     }
   };
 
@@ -960,7 +1067,7 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'portfolios', id));
     } catch (error) {
-      console.error("Error deleting portfolio:", error);
+      handleFirestoreError(error, OperationType.DELETE, `portfolios/${id}`);
     }
   };
 
@@ -968,7 +1075,7 @@ export default function App() {
     try {
       await updateDoc(doc(db, 'portfolios', id), updates);
     } catch (error) {
-      console.error("Error updating portfolio:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `portfolios/${id}`);
     }
   };
 
@@ -979,7 +1086,7 @@ export default function App() {
         created_at: serverTimestamp()
       });
     } catch (error) {
-      console.error("Error adding post:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'posts');
     }
   };
 
@@ -987,7 +1094,7 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'posts', id));
     } catch (error) {
-      console.error("Error deleting post:", error);
+      handleFirestoreError(error, OperationType.DELETE, `posts/${id}`);
     }
   };
 
@@ -1000,86 +1107,88 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-[#0A5C36] selection:text-white">
-      <Navbar onAdminClick={() => setIsAdmin(!isAdmin)} isAdmin={isAdmin} />
-      
-      <main>
-        {isAdmin ? (
-          user ? (
-            <AdminDashboard 
-              settings={settings}
-              portfolios={portfolios}
-              posts={posts}
-              onUpdateSettings={handleUpdateSettings}
-              onAddPortfolio={handleAddPortfolio}
-              onDeletePortfolio={handleDeletePortfolio}
-              onUpdatePortfolio={handleUpdatePortfolio}
-              onAddPost={handleAddPost}
-              onDeletePost={handleDeletePost}
-            />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-black text-white font-sans selection:bg-[#0A5C36] selection:text-white">
+        <Navbar onAdminClick={() => setIsAdmin(!isAdmin)} isAdmin={isAdmin} />
+        
+        <main>
+          {isAdmin ? (
+            user ? (
+              <AdminDashboard 
+                settings={settings}
+                portfolios={portfolios}
+                posts={posts}
+                onUpdateSettings={handleUpdateSettings}
+                onAddPortfolio={handleAddPortfolio}
+                onDeletePortfolio={handleDeletePortfolio}
+                onUpdatePortfolio={handleUpdatePortfolio}
+                onAddPost={handleAddPost}
+                onDeletePost={handleDeletePost}
+              />
+            ) : (
+              <div className="min-h-screen flex items-center justify-center p-6">
+                <div className="max-w-md w-full p-12 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl text-center">
+                  <div className="w-20 h-20 bg-[#0A5C36]/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                    <LayoutDashboard size={40} className="text-[#0A5C36]" />
+                  </div>
+                  <h2 className="text-3xl font-bold mb-4 tracking-tight">관리자 로그인</h2>
+                  <p className="text-white/40 mb-10 leading-relaxed">
+                    포트폴리오와 사이트 설정을 관리하려면<br />로그인이 필요합니다.
+                  </p>
+                  <button 
+                    onClick={signInWithGoogle}
+                    className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all flex items-center justify-center gap-3"
+                  >
+                    <LogIn size={20} /> 구글로 로그인하기
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
-            <div className="min-h-screen flex items-center justify-center p-6">
-              <div className="max-w-md w-full p-12 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl text-center">
-                <div className="w-20 h-20 bg-[#0A5C36]/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                  <LayoutDashboard size={40} className="text-[#0A5C36]" />
-                </div>
-                <h2 className="text-3xl font-bold mb-4 tracking-tight">관리자 로그인</h2>
-                <p className="text-white/40 mb-10 leading-relaxed">
-                  포트폴리오와 사이트 설정을 관리하려면<br />로그인이 필요합니다.
-                </p>
-                <button 
-                  onClick={signInWithGoogle}
-                  className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all flex items-center justify-center gap-3"
-                >
-                  <LogIn size={20} /> 구글로 로그인하기
-                </button>
-              </div>
-            </div>
-          )
-        ) : (
-          <>
-            <Hero settings={settings} />
-            <section id="services" className="py-32 px-6 border-y border-white/5">
-              <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                  <div className="space-y-6 group">
-                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                      <Stethoscope size={32} />
+            <>
+              <Hero settings={settings} />
+              <PortfolioGrid portfolios={portfolios} settings={settings} />
+              <section id="services" className="py-32 px-6 border-y border-white/5">
+                <div className="max-w-7xl mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                    <div className="space-y-6 group">
+                      <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                        <Stethoscope size={32} />
+                      </div>
+                      <h3 className="text-2xl font-bold">병원 유튜브</h3>
+                      <p className="text-white/50 leading-relaxed">
+                        병원 전문 브랜딩을 위한 유튜브 채널 기획부터 촬영, 편집까지. 신뢰감을 주는 고퀄리티 의료 콘텐츠를 제작합니다.
+                      </p>
                     </div>
-                    <h3 className="text-2xl font-bold">병원 유튜브</h3>
-                    <p className="text-white/50 leading-relaxed">
-                      병원 전문 브랜딩을 위한 유튜브 채널 기획부터 촬영, 편집까지. 신뢰감을 주는 고퀄리티 의료 콘텐츠를 제작합니다.
-                    </p>
-                  </div>
-                  <div className="space-y-6 group">
-                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                      <Building2 size={32} />
+                    <div className="space-y-6 group">
+                      <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                        <Building2 size={32} />
+                      </div>
+                      <h3 className="text-2xl font-bold">병원·기업 홍보영상</h3>
+                      <p className="text-white/50 leading-relaxed">
+                        브랜드의 가치를 시각적으로 극대화하는 시네마틱 홍보 영상을 제작합니다. 전문성과 신뢰를 담은 최상의 결과물을 보장합니다.
+                      </p>
                     </div>
-                    <h3 className="text-2xl font-bold">병원·기업 홍보영상</h3>
-                    <p className="text-white/50 leading-relaxed">
-                      브랜드의 가치를 시각적으로 극대화하는 시네마틱 홍보 영상을 제작합니다. 전문성과 신뢰를 담은 최상의 결과물을 보장합니다.
-                    </p>
-                  </div>
-                  <div className="space-y-6 group">
-                    <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
-                      <GraduationCap size={32} />
+                    <div className="space-y-6 group">
+                      <div className="w-16 h-16 bg-[#0A5C36]/10 rounded-2xl flex items-center justify-center text-[#0A5C36] group-hover:bg-[#0A5C36] group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(10,92,54,0)] group-hover:shadow-[0_0_30px_rgba(10,92,54,0.4)]">
+                        <GraduationCap size={32} />
+                      </div>
+                      <h3 className="text-2xl font-bold">강의영상</h3>
+                      <p className="text-white/50 leading-relaxed">
+                        전달력을 높이는 깔끔한 편집과 자막 디자인으로 학습 효율을 극대화하는 전문 교육 및 강의 영상을 제작합니다.
+                      </p>
                     </div>
-                    <h3 className="text-2xl font-bold">강의영상</h3>
-                    <p className="text-white/50 leading-relaxed">
-                      전달력을 높이는 깔끔한 편집과 자막 디자인으로 학습 효율을 극대화하는 전문 교육 및 강의 영상을 제작합니다.
-                    </p>
                   </div>
                 </div>
-              </div>
-            </section>
-            <PortfolioGrid portfolios={portfolios} settings={settings} />
-            <DownloadSection />
-            <ContactSection settings={settings} />
-          </>
-        )}
-      </main>
+              </section>
+              <DownloadSection />
+              <ContactSection settings={settings} />
+            </>
+          )}
+        </main>
 
-      <Footer settings={settings} />
-    </div>
+        <Footer settings={settings} />
+      </div>
+    </ErrorBoundary>
   );
 }
