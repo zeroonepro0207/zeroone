@@ -12,6 +12,9 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Explicitly serve static files from the public directory
+  app.use(express.static(path.resolve(process.cwd(), "public")));
+
   // Vite middleware for development
   const isProd = process.env.NODE_ENV === "production";
 

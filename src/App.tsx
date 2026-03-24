@@ -23,8 +23,6 @@ import {
   Stethoscope,
   Building2,
   GraduationCap,
-  Download,
-  FileDown,
   LogIn,
   AlertCircle
 } from 'lucide-react';
@@ -354,49 +352,6 @@ const Hero = ({ settings }: { settings: SiteSettings }) => (
       <span className="text-[10px] font-bold tracking-[0.5em] text-white/20 uppercase">Scroll</span>
       <div className="w-[1px] h-12 bg-gradient-to-b from-[#0A5C36] to-transparent" />
     </motion.div>
-  </section>
-);
-
-const DownloadSection = () => (
-  <section id="download" className="py-20 px-6 bg-[#050505] border-t border-white/5">
-    <div className="max-w-7xl mx-auto">
-      <div className="bg-gradient-to-br from-[#0A5C36]/20 to-transparent border border-white/10 rounded-[2.5rem] p-12 flex flex-col md:flex-row items-center justify-between gap-12 overflow-hidden relative group">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#0A5C36]/10 rounded-full blur-[100px] group-hover:bg-[#0A5C36]/20 transition-all duration-700" />
-        
-        <div className="relative z-10 flex-1">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A5C36]/10 rounded-full text-[#0A5C36] text-[10px] font-bold tracking-widest uppercase mb-6">
-            <FileDown size={14} /> Company Profile
-          </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            제로원프로덕션의<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">회사소개서</span>를 확인해보세요
-          </h2>
-          <p className="text-white/40 text-lg max-w-xl mb-10 leading-relaxed">
-            우리의 제작 프로세스, 주요 사업 분야, 그리고 다양한 포트폴리오가 담긴 상세 소개서를 다운로드 받으실 수 있습니다.
-          </p>
-          <a 
-            href="/ZERONE_Company_Profile.pdf" 
-            download="제로원프로덕션_회사소개서.pdf"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold rounded-full transition-all shadow-[0_10px_30px_rgba(10,92,54,0.3)] group"
-          >
-            회사소개서 다운로드 <Download size={20} className="group-hover:translate-y-1 transition-transform" />
-          </a>
-        </div>
-
-        <div className="relative z-10 w-full md:w-80 aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-2xl transform rotate-3 group-hover:rotate-0 transition-all duration-700 flex flex-col items-center justify-center p-12">
-          <div className="text-[#5A5A9E] font-bold text-5xl tracking-tighter mb-2">ZERONE</div>
-          <div className="text-[#5A5A9E]/60 text-sm tracking-[0.3em] uppercase">Production</div>
-          <div className="mt-12 w-12 h-[1px] bg-[#5A5A9E]/20" />
-          <div className="mt-4 text-[10px] font-bold tracking-widest text-[#5A5A9E]/40 uppercase">Company Profile</div>
-          
-          <div className="absolute bottom-6 right-6">
-            <div className="w-10 h-10 bg-[#5A5A9E]/10 rounded-full flex items-center justify-center">
-              <FileDown size={18} className="text-[#5A5A9E]" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 );
 
@@ -1243,7 +1198,6 @@ export default function App() {
               </section>
               <PortfolioGrid portfolios={portfolios} settings={settings} />
               <ContactSection settings={settings} />
-              <DownloadSection />
             </>
           )}
         </main>
