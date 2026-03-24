@@ -972,6 +972,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.has('admin') || window.location.pathname === '/admin') {
       setShowAdminAccess(true);
+      setIsAdmin(true);
     }
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -979,10 +980,6 @@ export default function App() {
       // If already logged in as admin, always show access
       if (user?.email === 'zeroonepro0207@gmail.com') {
         setShowAdminAccess(true);
-        // If they specifically navigated to /admin, enter admin mode automatically
-        if (window.location.pathname === '/admin') {
-          setIsAdmin(true);
-        }
       }
     });
 
@@ -1119,17 +1116,45 @@ export default function App() {
         <main>
           {isAdmin ? (
             user ? (
-              <AdminDashboard 
-                settings={settings}
-                portfolios={portfolios}
-                posts={posts}
-                onUpdateSettings={handleUpdateSettings}
-                onAddPortfolio={handleAddPortfolio}
-                onDeletePortfolio={handleDeletePortfolio}
-                onUpdatePortfolio={handleUpdatePortfolio}
-                onAddPost={handleAddPost}
-                onDeletePost={handleDeletePost}
-              />
+              user.email === 'zeroonepro0207@gmail.com' ? (
+                <AdminDashboard 
+                  settings={settings}
+                  portfolios={portfolios}
+                  posts={posts}
+                  onUpdateSettings={handleUpdateSettings}
+                  onAddPortfolio={handleAddPortfolio}
+                  onDeletePortfolio={handleDeletePortfolio}
+                  onUpdatePortfolio={handleUpdatePortfolio}
+                  onAddPost={handleAddPost}
+                  onDeletePost={handleDeletePost}
+                />
+              ) : (
+                <div className="min-h-screen flex items-center justify-center p-6">
+                  <div className="max-w-md w-full p-12 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl text-center">
+                    <div className="w-20 h-20 bg-red-500/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                      <AlertCircle size={40} className="text-red-500" />
+                    </div>
+                    <h2 className="text-3xl font-bold mb-4 tracking-tight">접근 거부</h2>
+                    <p className="text-white/40 mb-10 leading-relaxed">
+                      관리자 권한이 없는 계정입니다.<br />({user.email})
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <button 
+                        onClick={() => auth.signOut()}
+                        className="w-full py-4 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-all"
+                      >
+                        다른 계정으로 로그인
+                      </button>
+                      <button 
+                        onClick={() => setIsAdmin(false)}
+                        className="w-full py-4 text-white/40 font-bold rounded-2xl hover:text-white transition-all"
+                      >
+                        홈으로 돌아가기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
             ) : (
               <div className="min-h-screen flex items-center justify-center p-6">
                 <div className="max-w-md w-full p-12 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl text-center">
