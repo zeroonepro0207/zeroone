@@ -26,10 +26,13 @@ import {
   LogIn,
   AlertCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { SiteSettings, Portfolio, Post } from './types';
 import { db, auth, signInWithGoogle, logout } from './firebase';
+import { DEFAULT_PORTFOLIOS, CAROUSEL_PORTFOLIOS } from './data/defaultPortfolios';
 import { 
   collection, 
   onSnapshot, 
@@ -156,16 +159,10 @@ const Navbar = ({
   onAdminClick, 
   isAdmin, 
   showAdminAccess, 
-  setShowAdminAccess, 
-  logoClickCount, 
-  setLogoClickCount 
 }: { 
   onAdminClick: () => void, 
   isAdmin: boolean,
   showAdminAccess: boolean,
-  setShowAdminAccess: (show: boolean) => void,
-  logoClickCount: number,
-  setLogoClickCount: (count: number) => void
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -183,63 +180,45 @@ const Navbar = ({
     }, 100);
   };
 
-  const handleLogoClick = () => {
-    const newCount = logoClickCount + 1;
-    setLogoClickCount(newCount);
-    if (newCount >= 5) {
-      setShowAdminAccess(true);
-      setLogoClickCount(0);
-    }
-    // Reset count after 2 seconds of inactivity
-    setTimeout(() => setLogoClickCount(0), 2000);
-  };
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <div 
-          className="text-2xl font-bold tracking-tighter flex items-center gap-2 cursor-pointer select-none" 
-          onClick={() => {
-            scrollTo('home');
-            handleLogoClick();
-          }}
-        >
-          <div className="w-8 h-8 bg-[#0A5C36] rounded-sm flex items-center justify-center text-xs">01</div>
-          <span>ZERO ONE</span>
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-center relative">
+        {/* Desktop Menu - 가운데 정렬 */}
+        <div className="hidden md:flex items-center justify-center gap-10 text-sm font-medium text-white/70">
+          <button onClick={() => scrollTo('home')} className="hover:text-white transition-colors cursor-pointer">홈</button>
+          <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors cursor-pointer">서비스</button>
+          <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors cursor-pointer">포트폴리오</button>
+          <button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors cursor-pointer">가격안내</button>
+          <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors cursor-pointer">문의하기</button>
         </div>
-        
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
-          <button onClick={() => scrollTo('home')} className="hover:text-white transition-colors">홈</button>
-          <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
-          <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
-          <button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">가격안내</button>
-          <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">문의하기</button>
-          
-          {showAdminAccess && (
+
+        {/* Desktop Admin Access Toggle (우측 절대 배치) */}
+        {showAdminAccess && (
+          <div className="hidden md:block absolute right-6">
             <button 
               onClick={onAdminClick}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-white"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-white text-sm cursor-pointer"
             >
               {isAdmin ? <LogOut size={16} /> : <LayoutDashboard size={16} />}
               {isAdmin ? '나가기' : '관리자'}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Mobile Menu Toggle */}
-        <div className="md:hidden flex items-center gap-4">
+        {/* Mobile Menu Toggle (우측 정렬) */}
+        <div className="md:hidden flex items-center justify-end w-full gap-4">
           {showAdminAccess && (
             <button 
               onClick={onAdminClick}
-              className="p-2 bg-white/5 rounded-full border border-white/10 text-white"
+              className="p-2 bg-white/5 rounded-full border border-white/10 text-white cursor-pointer"
             >
               {isAdmin ? <LogOut size={18} /> : <LayoutDashboard size={18} />}
             </button>
           )}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-white"
+            className="p-2 text-white cursor-pointer"
+            aria-label="메뉴 열기"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -255,12 +234,12 @@ const Navbar = ({
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-black border-b border-white/10 overflow-hidden"
           >
-            <div className="px-6 py-8 flex flex-col gap-6 text-lg font-medium">
-              <button onClick={() => scrollTo('home')} className="text-left hover:text-[#0A5C36] transition-colors">홈</button>
-              <button onClick={() => scrollTo('services')} className="text-left hover:text-[#0A5C36] transition-colors">서비스</button>
-              <button onClick={() => scrollTo('portfolio')} className="text-left hover:text-[#0A5C36] transition-colors">포트폴리오</button>
-              <button onClick={() => scrollTo('pricing')} className="text-left hover:text-[#0A5C36] transition-colors">가격안내</button>
-              <button onClick={() => scrollTo('contact')} className="text-left hover:text-[#0A5C36] transition-colors">문의하기</button>
+            <div className="px-6 py-8 flex flex-col items-center gap-6 text-lg font-medium">
+              <button onClick={() => scrollTo('home')} className="hover:text-[#0A5C36] transition-colors cursor-pointer">홈</button>
+              <button onClick={() => scrollTo('services')} className="hover:text-[#0A5C36] transition-colors cursor-pointer">서비스</button>
+              <button onClick={() => scrollTo('portfolio')} className="hover:text-[#0A5C36] transition-colors cursor-pointer">포트폴리오</button>
+              <button onClick={() => scrollTo('pricing')} className="hover:text-[#0A5C36] transition-colors cursor-pointer">가격안내</button>
+              <button onClick={() => scrollTo('contact')} className="hover:text-[#0A5C36] transition-colors cursor-pointer">문의하기</button>
             </div>
           </motion.div>
         )}
@@ -269,167 +248,449 @@ const Navbar = ({
   );
 };
 
-const Hero = ({ settings }: { settings: SiteSettings }) => (
-  <section className="relative h-screen flex items-center justify-center overflow-hidden">
-    {/* Background with cinematic overlay and thumbnail grid */}
-    <div className="absolute inset-0 z-0">
-      <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 p-2 opacity-30 grayscale hover:grayscale-0 transition-all duration-1000">
-        {[...Array(24)].map((_, i) => (
-          <div key={i} className="aspect-video bg-white/5 rounded-lg overflow-hidden border border-white/5">
-            <img 
-              src={`https://picsum.photos/seed/hospital-${i}/400/225`} 
-              className="w-full h-full object-cover"
-              alt="Hospital Thumbnail"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        ))}
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-black opacity-90" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_90%)]" />
-      
-      {/* Viewfinder Overlay */}
-      <div className="absolute inset-10 border border-white/10 pointer-events-none">
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#0A5C36]" />
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#0A5C36]" />
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#0A5C36]" />
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#0A5C36]" />
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-          <span className="text-[10px] font-mono tracking-[0.3em] text-white/40 uppercase">REC 00:00:01:24</span>
-        </div>
-      </div>
-    </div>
+const getYoutubeId = (url?: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return match[2];
+  }
+  return null;
+};
 
-    <div className="relative z-10 text-center px-6 max-w-5xl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, ease: "easeOut" }}
-      >
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-[#0A5C36] text-[10px] font-bold tracking-[0.4em] mb-8 uppercase"
-        >
-          <div className="w-1.5 h-1.5 bg-[#0A5C36] rounded-full shadow-[0_0_10px_#0A5C36]" />
-          {settings.site_name}
-        </motion.div>
-        
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-10 leading-[1.1] tracking-tighter">
-          {settings.hero_title.split('\n').map((text, i) => (
-            <span key={i} className={i === 1 ? "block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/20" : "block"}>
-              {text.trim()}
-            </span>
-          ))}
-        </h1>
-        
-        <p className="text-base md:text-xl text-white/40 mb-12 max-w-3xl mx-auto font-light leading-relaxed tracking-tight">
-          {settings.hero_subtitle}
-        </p>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-          <button 
-            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-            className="w-full sm:w-auto px-10 py-5 bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold rounded-full transition-all flex items-center justify-center gap-3 group shadow-[0_10px_30px_rgba(10,92,54,0.3)]"
-          >
-            프로젝트 시작하기 <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button 
-            onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })}
-            className="w-full sm:w-auto px-10 py-5 bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md rounded-full transition-all font-bold"
-          >
-            포트폴리오 탐색
-          </button>
-        </div>
-      </motion.div>
-    </div>
+const Hero = ({ settings }: { settings: SiteSettings }) => {
+  const [hasVideoError, setHasVideoError] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const videoUrl = settings.hero_video_url || '/hero-video.mp4';
+  const ytId = getYoutubeId(videoUrl);
 
-    {/* Scroll Indicator */}
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 1.5 }}
-      className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4"
-    >
-      <span className="text-[10px] font-bold tracking-[0.5em] text-white/20 uppercase">Scroll</span>
-      <div className="w-[1px] h-12 bg-gradient-to-b from-[#0A5C36] to-transparent" />
-    </motion.div>
-  </section>
-);
-
-const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], settings: SiteSettings }) => {
-  const [activeCategory, setActiveCategory] = useState('ALL');
-  const categoriesStr = settings.categories || '브이로그,정보전달,토크,강의';
-  const categories = ['ALL', ...categoriesStr.split(',').map(c => c.trim())];
-
-  const filteredPortfolios = (activeCategory === 'ALL' 
-    ? [...portfolios].sort((a, b) => b.is_featured - a.is_featured)
-    : portfolios.filter(p => p.category === activeCategory)
-  ).slice(0, 6);
+  useEffect(() => {
+    setHasVideoError(false);
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {
+        // Autoplay policy handled silently
+      });
+    }
+  }, [videoUrl]);
 
   return (
-    <section id="portfolio" className="py-32 px-6 bg-black">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div>
-            <h2 className="text-4xl font-bold mb-4 tracking-tighter">PORTFOLIO</h2>
-            <p className="text-white/50">우리의 감각으로 탄생한 결과물들입니다.</p>
+    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
+      {/* Background Video Player */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {ytId ? (
+          <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center overflow-hidden">
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+              title="Hero Background Video"
+              className="w-[150vw] h-[150vh] min-w-full min-h-full object-cover scale-125 opacity-70 pointer-events-none"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
-          
-          <div className="flex flex-wrap gap-3">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
-                  activeCategory === cat 
-                    ? 'bg-[#0A5C36] border-[#0A5C36] text-white' 
-                    : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={() => setHasVideoError(true)}
+              className="w-full h-full object-cover opacity-75"
+              src={videoUrl}
+            />
+            {/* Fallback subtle motion grid if video not yet found */}
+            {hasVideoError && (
+              <div className="absolute inset-0 z-0 opacity-25">
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 p-2 grayscale">
+                  {[...Array(24)].map((_, i) => (
+                    <div key={i} className="aspect-video bg-white/5 rounded-lg overflow-hidden border border-white/5">
+                      <img 
+                        src={`https://picsum.photos/seed/hospital-${i}/400/225`} 
+                        className="w-full h-full object-cover"
+                        alt="Thumbnail"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Cinematic dark gradients over the video */}
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_85%)]" />
+
+        {/* Viewfinder Overlay */}
+        <div className="absolute inset-8 md:inset-12 border border-white/10 pointer-events-none">
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#0A5C36]" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#0A5C36]" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#0A5C36]" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#0A5C36]" />
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+            <span className="text-[10px] font-mono tracking-[0.3em] text-white/50 uppercase">REC 00:00:01:24</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons placed right above SCROLL Indicator */}
+      <div className="absolute bottom-8 md:bottom-12 left-0 right-0 z-10 flex flex-col items-center gap-6 md:gap-7 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="flex flex-row items-center justify-center gap-3.5 sm:gap-5 flex-wrap"
+        >
+          {/* (포트폴리오) 버튼 */}
+          <button 
+            onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 backdrop-blur-md rounded-full transition-all font-bold text-white text-sm sm:text-base cursor-pointer shadow-lg hover:shadow-white/10 active:scale-[0.98]"
+          >
+            포트폴리오
+          </button>
+
+          {/* (플랜보기) 버튼 - 클릭 시 가격안내(#pricing)로 스크롤 */}
+          <button 
+            onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-8 sm:px-10 py-3.5 sm:py-4 bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 group shadow-[0_10px_30px_rgba(10,92,54,0.4)] backdrop-blur-md text-sm sm:text-base cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+          >
+            플랜보기 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        </motion.div>
+
+        {/* Scroll Indicator with breathing glow effect */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="flex flex-col items-center gap-2 pointer-events-none"
+        >
+          <motion.span 
+            animate={{
+              opacity: [0.35, 1, 0.35],
+              textShadow: [
+                "0 0 4px rgba(255,255,255,0.2), 0 0 10px rgba(10,92,54,0.3)",
+                "0 0 15px rgba(255,255,255,1), 0 0 25px rgba(52,211,153,0.9), 0 0 35px rgba(10,92,54,0.9)",
+                "0 0 4px rgba(255,255,255,0.2), 0 0 10px rgba(10,92,54,0.3)"
+              ]
+            }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="text-[10px] sm:text-[11px] font-extrabold tracking-[0.55em] text-white uppercase select-none pl-1"
+          >
+            SCROLL
+          </motion.span>
+          <motion.div 
+            animate={{
+              opacity: [0.3, 1, 0.3],
+              boxShadow: [
+                "0 0 4px rgba(10,92,54,0.2)",
+                "0 0 12px rgba(52,211,153,0.9)",
+                "0 0 4px rgba(10,92,54,0.2)"
+              ]
+            }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="w-[1.5px] h-7 sm:h-9 bg-gradient-to-b from-white via-[#0A5C36] to-transparent rounded-full" 
+          />
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+const fetchYoutubeTitle = async (url: string): Promise<string | null> => {
+  if (!url) return null;
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.title || null;
+  } catch {
+    return null;
+  }
+};
+
+const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], settings: SiteSettings }) => {
+  // Use ONLY portfolios registered by the user in the admin dashboard (Firestore).
+  // Fall back to DEFAULT_PORTFOLIOS only when the database is completely empty.
+  const displayPortfolios = portfolios.length > 0 ? portfolios : DEFAULT_PORTFOLIOS;
+
+  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [selectedVideo, setSelectedVideo] = useState<{ title: string; video_url: string } | null>(null);
+
+  // Extract all categories available from settings and uploaded portfolios
+  const rawCategories = (settings.categories || '시술 정보,트렌드/이슈,원장님 토크,리얼 후기')
+    .split(',')
+    .map(c => c.trim())
+    .filter(Boolean);
+  
+  const portfolioCategories = Array.from(new Set(displayPortfolios.map(p => p.category).filter(Boolean)));
+  const combinedCategories = Array.from(new Set([...rawCategories, ...portfolioCategories]));
+  const categories = ['ALL', ...combinedCategories];
+
+  // Filter items according to activeCategory
+  const filteredItems = activeCategory === 'ALL'
+    ? [...displayPortfolios].sort((a, b) => (b.is_featured || 0) - (a.is_featured || 0))
+    : displayPortfolios.filter(p => p.category === activeCategory);
+
+  // 6 main video cards for the 2x3 grid
+  const gridItems = filteredItems.slice(0, 6);
+
+  // Flowing ticker items: ONLY from the user's admin portfolios
+  const userTickerPortfolios = displayPortfolios.filter(p => p.is_ticker === 1 || p.is_ticker === (true as any));
+  const rawTickerItems = userTickerPortfolios.length > 0 ? userTickerPortfolios : displayPortfolios;
+
+  // Duplicate items cleanly for a seamless infinite marquee loop without any third-party/temporary videos
+  const tickerItems = rawTickerItems.length > 0
+    ? (rawTickerItems.length < 6 
+        ? [...rawTickerItems, ...rawTickerItems, ...rawTickerItems, ...rawTickerItems].slice(0, 12) 
+        : rawTickerItems)
+    : [];
+
+  return (
+    <section id="portfolio" className="py-24 sm:py-32 px-4 sm:px-6 bg-black overflow-hidden">
+      <div className="max-w-7xl mx-auto">
+        {/* Section Header: Title + Category Tabs */}
+        <div className="mb-10 sm:mb-14 flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-white/5 pb-8">
+          <div>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">PORTFOLIO</h2>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat;
+              return (
+                <motion.button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className={`px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border cursor-pointer select-none ${
+                    isActive
+                      ? 'bg-[#0A5C36] border-[#0A5C36] text-white shadow-[0_0_20px_rgba(10,92,54,0.4)]'
+                      : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/10'
+                  }`}
+                >
+                  {cat}
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <AnimatePresence mode="popLayout">
-            {filteredPortfolios.map((item, idx) => (
-              <motion.div 
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="group cursor-pointer"
-                onClick={() => window.open(item.video_url, '_blank')}
-              >
-                <div className="relative aspect-video overflow-hidden rounded-2xl bg-white/5">
-                  <img 
-                    src={item.thumbnail} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt={item.title}
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-16 h-16 bg-[#0A5C36] rounded-full flex items-center justify-center">
-                      <Play fill="white" size={24} />
+        {/* 2 Rows x 3 Columns Main Grid with Responsive Category Transitions */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 min-h-[300px]"
+          >
+            {gridItems.length > 0 ? (
+              gridItems.map((item, idx) => (
+                <motion.div 
+                  key={item.id || idx}
+                  initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    duration: 0.35, 
+                    delay: idx * 0.045, 
+                    ease: [0.16, 1, 0.3, 1] 
+                  }}
+                  whileHover={{ y: -6, transition: { duration: 0.2, ease: "easeOut" } }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group cursor-pointer flex flex-col"
+                  onClick={() => setSelectedVideo({ title: item.title, video_url: item.video_url })}
+                >
+                  {/* 16:9 Thumbnail Container */}
+                  <div className="relative aspect-video w-full overflow-hidden rounded-xl sm:rounded-2xl bg-neutral-900 border border-white/5 transition-all duration-300 group-hover:border-white/20 group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.8)]">
+                    <img 
+                      src={item.thumbnail} 
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
+                      alt={item.title}
+                      referrerPolicy="no-referrer"
+                    />
+                    
+                    {/* Top-Right Circular Play Badge */}
+                    <div className="absolute top-3 right-3 w-8 h-8 sm:w-9 sm:h-9 bg-white rounded-full flex items-center justify-center shadow-lg pointer-events-none transition-transform duration-300 group-hover:scale-110">
+                      <Play className="fill-black text-black ml-0.5" size={14} />
                     </div>
+
+                    {/* Dark hover overlay */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-[10px] font-bold text-[#0A5C36] uppercase tracking-widest">{item.category}</span>
-                  <h3 className="text-lg font-bold mt-1 group-hover:text-[#0A5C36] transition-colors">{item.title}</h3>
-                </div>
+
+                  {/* Video Title Below Thumbnail (exact title from Admin page) */}
+                  <div className="mt-3 px-1">
+                    <h3 className="text-[14px] sm:text-[15px] font-medium text-white/95 leading-snug group-hover:text-white transition-colors line-clamp-2">
+                      {item.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-full py-20 text-center text-white/40 flex flex-col items-center justify-center"
+              >
+                <p className="text-base font-medium">해당 카테고리에 등록된 영상이 없습니다.</p>
               </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Continuous Flowing Marquee Ticker (우에서 좌로 계속 흘러가는 영상들 - 관리자 포트폴리오 영상만 노출) */}
+        {tickerItems.length > 0 && (
+          <div className="mt-16 sm:mt-20 pt-10 border-t border-white/10 relative">
+            <div className="relative overflow-hidden w-full py-2">
+              {/* Left / Right gradient masks for smooth edge fade */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-r from-black to-transparent z-10" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-l from-black to-transparent z-10" />
+
+              {/* Continuous Marquee Track (flows from right to left) */}
+              <div className="flex animate-marquee gap-4 sm:gap-6">
+                {/* First Track Copy */}
+                {tickerItems.map((item, idx) => (
+                  <div
+                    key={`track1-${item.id || idx}`}
+                    onClick={() => setSelectedVideo({ title: item.title, video_url: item.video_url })}
+                    className="flex-shrink-0 w-[220px] sm:w-[260px] md:w-[290px] cursor-pointer group flex flex-col"
+                  >
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-neutral-900 border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                      <img
+                        src={item.thumbnail}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md transition-transform group-hover:scale-110">
+                          <Play className="fill-black text-black ml-0.5" size={12} />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs sm:text-[13px] font-medium text-white/75 group-hover:text-white truncate transition-colors px-1">
+                      {item.title}
+                    </p>
+                  </div>
+                ))}
+
+                {/* Second Track Copy for seamless infinite loop */}
+                {tickerItems.map((item, idx) => (
+                  <div
+                    key={`track2-${item.id || idx}`}
+                    onClick={() => setSelectedVideo({ title: item.title, video_url: item.video_url })}
+                    className="flex-shrink-0 w-[220px] sm:w-[260px] md:w-[290px] cursor-pointer group flex flex-col"
+                  >
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-neutral-900 border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                      <img
+                        src={item.thumbnail}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md transition-transform group-hover:scale-110">
+                          <Play className="fill-black text-black ml-0.5" size={12} />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs sm:text-[13px] font-medium text-white/75 group-hover:text-white truncate transition-colors px-1">
+                      {item.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Video Player Modal */}
+      <AnimatePresence>
+        {selectedVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+            onClick={() => setSelectedVideo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-4xl bg-neutral-950 rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex flex-col"
+            >
+              <div className="p-4 flex items-center justify-between border-b border-white/10">
+                <h4 className="text-sm sm:text-base font-bold text-white truncate pr-4">
+                  {selectedVideo.title}
+                </h4>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {selectedVideo.video_url && (
+                    <a
+                      href={selectedVideo.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/75 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-medium"
+                    >
+                      <span>유튜브에서 보기</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setSelectedVideo(null)}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative aspect-video w-full bg-black">
+                {getYoutubeId(selectedVideo.video_url) ? (
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${getYoutubeId(selectedVideo.video_url)}?autoplay=1&rel=0`}
+                    title={selectedVideo.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                    <p className="text-white/80 font-medium mb-4 max-w-md">{selectedVideo.title}</p>
+                    <a
+                      href={selectedVideo.video_url || "https://youtube.com"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 rounded-full bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold text-sm inline-flex items-center gap-2 transition-all shadow-lg"
+                    >
+                      <Play size={16} fill="white" />
+                      <span>YouTube에서 시청하기</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
@@ -507,9 +768,6 @@ const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => 
     <div className="max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="text-center max-w-2xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A5C36]/10 border border-[#0A5C36]/20 rounded-full text-[#0A5C36] text-xs font-bold tracking-widest uppercase mb-6">
-          <Sparkles size={14} /> Service Pricing
-        </div>
         <h2 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
           유튜브 콘텐츠 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">가격 안내</span>
         </h2>
@@ -633,18 +891,14 @@ const ContactSection = ({ settings, initialMessage }: { settings: SiteSettings; 
   <section id="contact" className="py-32 px-6 bg-black">
     <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
       {/* Left Side: Text & Info */}
-      <div className="lg:w-5/12 space-y-12">
+      <div className="lg:w-5/12 flex flex-col justify-between py-2 space-y-12">
         <div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold leading-tight">
             프로젝트를 함께<br />시작해볼까요?
           </h2>
-          <p className="text-white/50 text-lg leading-relaxed">
-            당신의 아이디어가 제로원프로덕션을 만나면 현실이 됩니다.<br />
-            가벼운 문의라도 언제든 환영합니다.
-          </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className="flex items-center gap-6">
             <div className="w-12 h-12 rounded-2xl bg-[#0A5C36]/20 border border-[#0A5C36]/30 flex items-center justify-center text-[#0A5C36]">
               <Mail size={24} />
@@ -729,42 +983,65 @@ const ContactSection = ({ settings, initialMessage }: { settings: SiteSettings; 
   );
 };
 
-const Footer = ({ settings }: { settings: SiteSettings }) => (
-  <footer className="py-20 px-6 border-t border-white/10">
-    <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
-      <div>
-        <div className="text-2xl font-bold tracking-tighter flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-[#0A5C36] rounded-sm flex items-center justify-center text-xs text-white">01</div>
-          <span>ZERO ONE</span>
-        </div>
-        <p className="text-white/40 max-w-sm mb-8">
-          우리는 단순한 영상 제작을 넘어, 브랜드의 본질을 담아내는 시각적 예술을 지향합니다.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-16">
+const Footer = ({ 
+  settings, 
+  onContactClick 
+}: { 
+  settings: SiteSettings; 
+  onContactClick?: () => void;
+}) => {
+  const [contactClickCount, setContactClickCount] = useState(0);
+
+  const handleContactClick = () => {
+    const next = contactClickCount + 1;
+    setContactClickCount(next);
+    if (next >= 5) {
+      setContactClickCount(0);
+      if (onContactClick) {
+        onContactClick();
+      }
+    }
+    setTimeout(() => setContactClickCount(0), 2000);
+  };
+
+  return (
+    <footer className="py-20 px-6 border-t border-white/10">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
         <div>
-          <h4 className="font-bold mb-6 text-sm tracking-widest">CONTACT</h4>
-          <ul className="space-y-4 text-sm text-white/40">
-            <li>{settings.contact_email}</li>
-            <li>{settings.contact_phone}</li>
-            <li>{settings.contact_address}</li>
-          </ul>
+          <p className="text-white/40 max-w-sm mb-8 leading-relaxed">
+            우리는 단순한 영상 제작을 넘어, 브랜드의 본질을 담아내는 시각적 예술을 지향합니다.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-16">
+          <div>
+            <h4 
+              onClick={handleContactClick}
+              className="font-bold mb-6 text-sm tracking-widest cursor-pointer select-none hover:text-white transition-colors"
+              title="CONTACT"
+            >
+              CONTACT
+            </h4>
+            <ul className="space-y-4 text-sm text-white/40">
+              <li>{settings.contact_email}</li>
+              <li>{settings.contact_phone}</li>
+              <li>{settings.contact_address}</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
-    <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-center text-[10px] text-white/20 tracking-widest">
-      © 2024 ZERO ONE PRODUCTION. ALL RIGHTS RESERVED.
-    </div>
-  </footer>
-);
+      <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-center text-[10px] text-white/20 tracking-widest">
+        © 2024 ZERO ONE PRODUCTION. ALL RIGHTS RESERVED.
+      </div>
+    </footer>
+  );
+};
 
 // --- Admin Components ---
 
 const getYoutubeThumbnail = (url: string) => {
-  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+  const id = getYoutubeId(url);
+  if (id) {
+    return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
   }
   return 'https://picsum.photos/seed/video/800/450';
 };
@@ -810,9 +1087,13 @@ const AdminDashboard = ({
     setIsEditing(true);
   };
 
-  const handlePortfolioLinkChange = (id: string, url: string) => {
+  const handlePortfolioLinkChange = async (id: string, url: string) => {
     const thumbnail = getYoutubeThumbnail(url);
     onUpdatePortfolio(id, { video_url: url, thumbnail });
+    const realTitle = await fetchYoutubeTitle(url);
+    if (realTitle) {
+      onUpdatePortfolio(id, { title: realTitle });
+    }
   };
 
   return (
@@ -945,6 +1226,21 @@ const AdminDashboard = ({
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                   </div>
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="block text-sm font-bold text-white/50 uppercase tracking-widest">
+                      메인 배경 영상 URL (동영상 파일 경로 또는 유튜브 링크)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.hero_video_url || ''}
+                      placeholder="/hero-video.mp4 또는 https://youtube.com/watch?v=..."
+                      onChange={e => handleChange({ hero_video_url: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all font-mono text-sm"
+                    />
+                    <p className="text-xs text-white/40">
+                      * 로컬 영상 파일을 직접 사용하시려면 프로젝트의 <span className="text-[#0A5C36] font-mono font-bold">public/hero-video.mp4</span> 경로에 파일을 넣으시면 자동으로 무한 반복 재생됩니다. 또는 유튜브 링크나 온라인 MP4 링크를 입력하셔도 됩니다.
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -974,23 +1270,23 @@ const AdminDashboard = ({
                       type="text" 
                       value={localSettings.categories}
                       onChange={e => handleChange({ categories: e.target.value })}
-                      placeholder="브이로그, 정보전달, 토크, 강의"
+                      placeholder="시술 정보, 트렌드/이슈, 원장님 토크, 리얼 후기"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#0A5C36] outline-none transition-all"
                     />
                     <p className="text-[10px] text-white/20 leading-relaxed">
                       * 카테고리를 추가하거나 삭제한 후 반드시 '카테고리 저장' 버튼을 눌러주세요.<br />
-                      * 삭제된 카테고리에 속한 포트폴리오는 다른 카테고리로 재지정해야 합니다.
+                      * 포트폴리오 섹션의 상단 필터 탭에 즉시 반영됩니다.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-8">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-3xl font-bold">포트폴리오 관리</h2>
-                      <p className="text-white/30 text-sm mt-1">
-                        메인 화면(ALL)에는 <span className="text-[#0A5C36] font-bold">최대 6개</span>의 영상이 표시됩니다. 
-                        (현재 <span className="text-white font-bold">{portfolios.filter(p => p.is_featured).length}개</span> 선택됨)
+                      <p className="text-white/40 text-sm mt-1">
+                        상단 메인 2×3 그리드(<span className="text-[#0A5C36] font-bold">최대 6개</span>)와 
+                        하단 우에서 좌로 흘러가는 영상(<span className="text-amber-400 font-bold">하단 롤링</span>)을 각각 선택하여 관리할 수 있습니다.
                       </p>
                     </div>
                     <button 
@@ -999,10 +1295,11 @@ const AdminDashboard = ({
                         description: '',
                         thumbnail: 'https://picsum.photos/seed/new/800/450',
                         video_url: '',
-                        category: (settings.categories || '브이로그').split(',')[0].trim(),
-                        is_featured: 0
+                        category: (settings.categories || '시술 정보').split(',')[0].trim(),
+                        is_featured: 0,
+                        is_ticker: 1
                       })}
-                      className="flex items-center gap-2 px-6 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all"
+                      className="flex items-center gap-2 px-6 py-3 bg-[#0A5C36] rounded-full font-bold hover:bg-[#0c7042] transition-all cursor-pointer"
                     >
                       <Plus size={18} /> 추가하기
                     </button>
@@ -1014,17 +1311,40 @@ const AdminDashboard = ({
                         <div className="flex flex-col md:flex-row gap-6">
                           <div className="w-full md:w-64 aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group">
                             <img src={item.thumbnail} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                            {item.is_featured === 1 && (
-                              <div className="absolute top-3 left-3 px-3 py-1 bg-[#0A5C36] text-white text-[10px] font-bold rounded-full shadow-lg">
-                                메인 노출 중
-                              </div>
-                            )}
+                            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                              {item.is_featured === 1 && (
+                                <div className="px-2.5 py-0.5 bg-[#0A5C36] text-white text-[10px] font-bold rounded-full shadow-lg">
+                                  메인 6개 노출
+                                </div>
+                              )}
+                              {(item.is_ticker === 1 || item.is_ticker === (true as any)) && (
+                                <div className="px-2.5 py-0.5 bg-amber-500 text-black text-[10px] font-bold rounded-full shadow-lg">
+                                  하단 롤링 노출
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div className="flex-1 space-y-4">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">제목</label>
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">제목</label>
+                                    {item.video_url && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          const title = await fetchYoutubeTitle(item.video_url);
+                                          if (title) {
+                                            onUpdatePortfolio(item.id, { title });
+                                          }
+                                        }}
+                                        className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <RefreshCw size={10} /> 실제 유튜브 제목 적용
+                                      </button>
+                                    )}
+                                  </div>
                                   <input 
                                     type="text" 
                                     value={item.title}
@@ -1039,23 +1359,38 @@ const AdminDashboard = ({
                                     onChange={e => onUpdatePortfolio(item.id, { category: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#0A5C36] outline-none"
                                   >
-                                    {(settings.categories || '브이로그,정보전달,토크,강의').split(',').map(cat => (
+                                    {(settings.categories || '시술 정보,트렌드/이슈,원장님 토크,리얼 후기').split(',').map(cat => (
                                       <option key={cat.trim()} value={cat.trim()}>{cat.trim()}</option>
                                     ))}
                                   </select>
                                 </div>
                               </div>
                               
-                              <button 
-                                onClick={() => onUpdatePortfolio(item.id, { is_featured: item.is_featured ? 0 : 1 })}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold transition-all border ${
-                                  item.is_featured 
-                                    ? 'bg-[#0A5C36] border-[#0A5C36] text-white' 
-                                    : 'bg-white/5 border-white/10 text-white/30 hover:border-white/30'
-                                }`}
-                              >
-                                {item.is_featured ? '메인 노출 취소' : '메인 노출 선택'}
-                              </button>
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                <button 
+                                  onClick={() => onUpdatePortfolio(item.id, { is_featured: item.is_featured ? 0 : 1 })}
+                                  className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${
+                                    item.is_featured 
+                                      ? 'bg-[#0A5C36] border-[#0A5C36] text-white shadow-sm' 
+                                      : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30'
+                                  }`}
+                                >
+                                  <Check size={13} className={item.is_featured ? 'opacity-100' : 'opacity-0'} />
+                                  {item.is_featured ? '메인 6개 노출 중' : '메인 6개 노출'}
+                                </button>
+
+                                <button 
+                                  onClick={() => onUpdatePortfolio(item.id, { is_ticker: (item.is_ticker === 1 || item.is_ticker === (true as any)) ? 0 : 1 })}
+                                  className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${
+                                    (item.is_ticker === 1 || item.is_ticker === (true as any))
+                                      ? 'bg-amber-500/20 border-amber-500/80 text-amber-300' 
+                                      : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30'
+                                  }`}
+                                >
+                                  <Sparkles size={13} />
+                                  {(item.is_ticker === 1 || item.is_ticker === (true as any)) ? '하단 롤링 노출 중' : '하단 롤링 노출'}
+                                </button>
+                              </div>
                             </div>
 
                             <div className="space-y-2">
@@ -1155,6 +1490,7 @@ export default function App() {
     site_name: "제로원프로덕션",
     hero_title: "세상을 바꾸는 단 하나의 영상\n제로원프로덕션",
     hero_subtitle: "최고의 퀄리티로 당신의 브랜드 가치를 높여드립니다.",
+    hero_video_url: "/hero-video.mp4",
     primary_color: "#0A5C36",
     bg_color: "#000000",
     contact_email: "contact@zeroone.pro",
@@ -1162,13 +1498,12 @@ export default function App() {
     contact_address: "서울특별시 마포구 월드컵북로 179, 208호",
     youtube_url: "https://youtube.com/@zeroone",
     instagram_url: "https://instagram.com/zeroone",
-    categories: "브이로그,정보전달,토크,강의"
+    categories: "시술 정보,트렌드/이슈,원장님 토크,리얼 후기"
   });
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
-  const [logoClickCount, setLogoClickCount] = useState(0);
 
   useEffect(() => {
     // Check URL for ?admin or pathname /admin
@@ -1211,14 +1546,16 @@ export default function App() {
       
       // Seed initial portfolios if empty AND user is admin
       if (items.length === 0 && isAdminUser(auth.currentUser)) {
-        const initialPortfolios = [
-          { title: "성형외과 전문의 인터뷰 영상", description: "의료진의 신뢰도를 높이는 전문 인터뷰 및 병원 소개 영상", thumbnail: "https://picsum.photos/seed/hospital-1/800/450", video_url: "https://youtube.com", category: "Hospital YouTube", is_featured: 1, created_at: serverTimestamp() },
-          { title: "IT 기업 브랜드 필름", description: "혁신적인 기업 이미지를 강조한 시네마틱 홍보 영상", thumbnail: "https://picsum.photos/seed/corporate/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
-          { title: "공인중개사 자격증 핵심 강의", description: "전달력을 극대화한 깔끔한 자막과 모션 그래픽 강의 영상", thumbnail: "https://picsum.photos/seed/lecture/800/450", video_url: "https://youtube.com", category: "Lecture Video", is_featured: 1, created_at: serverTimestamp() },
-          { title: "치과 임플란트 시술 안내", description: "환자들의 이해를 돕는 친절한 시술 과정 안내 영상", thumbnail: "https://picsum.photos/seed/hospital-2/800/450", video_url: "https://youtube.com", category: "Hospital YouTube", is_featured: 1, created_at: serverTimestamp() },
-          { title: "글로벌 제조 기업 공장 스케치", description: "웅장한 스케일의 기업 시설 및 공정 홍보 영상", thumbnail: "https://picsum.photos/seed/factory/800/450", video_url: "https://youtube.com", category: "Promotion Video", is_featured: 1, created_at: serverTimestamp() },
-          { title: "마케팅 실무 마스터 클래스", description: "실제 사례 중심의 몰입감 넘치는 온라인 강의 콘텐츠", thumbnail: "https://picsum.photos/seed/marketing/800/450", video_url: "https://youtube.com", category: "Lecture Video", is_featured: 1, created_at: serverTimestamp() }
-        ];
+        const initialPortfolios = DEFAULT_PORTFOLIOS.map(p => ({
+          title: p.title,
+          description: p.description,
+          thumbnail: p.thumbnail,
+          video_url: p.video_url,
+          category: p.category || '시술 정보',
+          is_featured: p.is_featured,
+          is_ticker: p.is_ticker || 1,
+          created_at: serverTimestamp()
+        }));
         initialPortfolios.forEach(p => addDoc(collection(db, 'portfolios'), p).catch(err => handleFirestoreError(err, OperationType.CREATE, 'portfolios')));
       }
     }, (err) => handleFirestoreError(err, OperationType.GET, 'portfolios'));
@@ -1311,9 +1648,6 @@ export default function App() {
           onAdminClick={() => setIsAdmin(!isAdmin)} 
           isAdmin={isAdmin}
           showAdminAccess={showAdminAccess}
-          setShowAdminAccess={setShowAdminAccess}
-          logoClickCount={logoClickCount}
-          setLogoClickCount={setLogoClickCount}
         />
         
         <main>
@@ -1439,7 +1773,13 @@ export default function App() {
           )}
         </main>
 
-        <Footer settings={settings} />
+        <Footer 
+          settings={settings} 
+          onContactClick={() => {
+            setShowAdminAccess(true);
+            setIsAdmin(true);
+          }}
+        />
       </div>
     </ErrorBoundary>
   );
