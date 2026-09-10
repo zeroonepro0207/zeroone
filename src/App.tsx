@@ -28,7 +28,8 @@ import {
   Sparkles,
   ArrowRight,
   Check,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 import { SiteSettings, Portfolio, Post } from './types';
 import { db, auth, signInWithGoogle, logout } from './firebase';
@@ -343,12 +344,12 @@ const Hero = ({ settings }: { settings: SiteSettings }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex flex-row items-center justify-center gap-3.5 sm:gap-5 flex-wrap"
+          className="flex flex-row items-center justify-center gap-3 sm:gap-4.5"
         >
           {/* (포트폴리오) 버튼 */}
           <button 
             onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 backdrop-blur-md rounded-full transition-all font-bold text-white text-sm sm:text-base cursor-pointer shadow-lg hover:shadow-white/10 active:scale-[0.98]"
+            className="px-6 sm:px-9 py-3 sm:py-3.5 bg-black/40 border border-white/20 hover:border-[#22c55e] text-white font-bold text-sm sm:text-base rounded-full transition-all duration-300 backdrop-blur-md cursor-pointer hover:shadow-[0_0_25px_rgba(34,197,94,0.75)] active:scale-95 whitespace-nowrap select-none"
           >
             포트폴리오
           </button>
@@ -356,9 +357,9 @@ const Hero = ({ settings }: { settings: SiteSettings }) => {
           {/* (플랜보기) 버튼 - 클릭 시 가격안내(#pricing)로 스크롤 */}
           <button 
             onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-8 sm:px-10 py-3.5 sm:py-4 bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 group shadow-[0_10px_30px_rgba(10,92,54,0.4)] backdrop-blur-md text-sm sm:text-base cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            className="px-6 sm:px-9 py-3 sm:py-3.5 bg-black/40 border border-emerald-500/80 sm:border-white/20 shadow-[0_0_18px_rgba(34,197,94,0.45)] sm:shadow-none hover:border-[#22c55e] text-white font-bold text-sm sm:text-base rounded-full transition-all duration-300 backdrop-blur-md cursor-pointer hover:shadow-[0_0_25px_rgba(34,197,94,0.75)] active:scale-95 whitespace-nowrap select-none"
           >
-            플랜보기 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            플랜보기
           </button>
         </motion.div>
 
@@ -767,13 +768,11 @@ const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => 
   <section id="pricing" className="py-32 px-6 bg-[#050505] border-t border-white/5 relative">
     <div className="max-w-7xl mx-auto">
       {/* Section Header */}
-      <div className="text-center max-w-2xl mx-auto mb-16">
-        <h2 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
-          유튜브 콘텐츠 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">가격 안내</span>
+      <div className="text-center max-w-3xl mx-auto mb-12 md:mb-14">
+        <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+          <span className="text-white">PRODUCTION </span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">PLANS</span>
         </h2>
-        <p className="text-white/30 text-sm mt-3 leading-relaxed">
-          채널 성장에 최적화된 기획·촬영·편집·채널 관리 패키지를 확인해보세요.
-        </p>
       </div>
 
       {/* Pricing Cards Grid matching user image (IMG_6033.jpeg) */}
@@ -1294,6 +1293,28 @@ const Footer = ({
         © 2024 ZERO ONE PRODUCTION. ALL RIGHTS RESERVED.
       </div>
     </footer>
+  );
+};
+
+const KakaoFloatingButton = () => {
+  return (
+    <motion.a
+      href="http://pf.kakao.com/_VeVTX/chat"
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+      className="fixed right-6 bottom-6 z-50 flex items-center gap-2 bg-[#FEE500] text-[#191919] px-4 py-3 sm:px-4.5 sm:py-3.5 rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_30px_rgba(254,229,0,0.45)] cursor-pointer group select-none border border-black/5"
+      aria-label="카카오톡 1:1 상담 바로가기"
+    >
+      <MessageCircle size={22} className="fill-[#191919] text-[#191919] flex-shrink-0" />
+      <span className="text-[14px] sm:text-[15px] font-bold tracking-tight whitespace-nowrap text-[#191919]">
+        카톡 상담
+      </span>
+    </motion.a>
   );
 };
 
@@ -2041,6 +2062,8 @@ export default function App() {
             setIsAdmin(true);
           }}
         />
+
+        {!isAdmin && <KakaoFloatingButton />}
       </div>
     </ErrorBoundary>
   );
