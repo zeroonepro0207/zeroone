@@ -24,7 +24,9 @@ import {
   Building2,
   GraduationCap,
   LogIn,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { SiteSettings, Portfolio, Post } from './types';
 import { db, auth, signInWithGoogle, logout } from './firebase';
@@ -211,6 +213,7 @@ const Navbar = ({
           <button onClick={() => scrollTo('home')} className="hover:text-white transition-colors">홈</button>
           <button onClick={() => scrollTo('services')} className="hover:text-white transition-colors">서비스</button>
           <button onClick={() => scrollTo('portfolio')} className="hover:text-white transition-colors">포트폴리오</button>
+          <button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">가격안내</button>
           <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">문의하기</button>
           
           {showAdminAccess && (
@@ -256,6 +259,7 @@ const Navbar = ({
               <button onClick={() => scrollTo('home')} className="text-left hover:text-[#0A5C36] transition-colors">홈</button>
               <button onClick={() => scrollTo('services')} className="text-left hover:text-[#0A5C36] transition-colors">서비스</button>
               <button onClick={() => scrollTo('portfolio')} className="text-left hover:text-[#0A5C36] transition-colors">포트폴리오</button>
+              <button onClick={() => scrollTo('pricing')} className="text-left hover:text-[#0A5C36] transition-colors">가격안내</button>
               <button onClick={() => scrollTo('contact')} className="text-left hover:text-[#0A5C36] transition-colors">문의하기</button>
             </div>
           </motion.div>
@@ -430,7 +434,202 @@ const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], sett
   );
 };
 
-const ContactSection = ({ settings }: { settings: SiteSettings }) => (
+interface PlanTableRow {
+  category: string;
+  categoryRowSpan?: number;
+  subItem?: string;
+  quantity?: string;
+}
+
+interface PricingPlanData {
+  id: string;
+  name: string;
+  price: string;
+  vatInfo: string;
+  isPopular?: boolean;
+  badge?: string;
+  tableRows: PlanTableRow[];
+}
+
+const PRICING_PLANS: PricingPlanData[] = [
+  {
+    id: 'plan-a',
+    name: '플랜A',
+    price: '월 2,750,000원',
+    vatInfo: 'VAT 포함',
+    isPopular: false,
+    badge: '스타터 플랜',
+    tableRows: [
+      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 1회' },
+      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
+      { category: '', subItem: '숏폼', quantity: '월 4편 (본편 기반 발췌)' },
+      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
+      { category: '', subItem: '채널 아트 제작', quantity: '' },
+    ]
+  },
+  {
+    id: 'plan-b',
+    name: '플랜B',
+    price: '월 3,300,000원',
+    vatInfo: 'VAT 포함',
+    isPopular: true,
+    badge: '★ 추천 (POPULAR)',
+    tableRows: [
+      { category: '기획', categoryRowSpan: 1, subItem: '', quantity: '월 4회' },
+      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 2회' },
+      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
+      { category: '', subItem: '숏폼', quantity: '월 8편 (본편 기반 발췌)' },
+      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
+      { category: '', subItem: '채널 아트 제작', quantity: '' },
+    ]
+  },
+  {
+    id: 'plan-c',
+    name: '플랜C',
+    price: '월 4,400,000원',
+    vatInfo: 'VAT 포함',
+    isPopular: false,
+    badge: '프리미엄 올인원',
+    tableRows: [
+      { category: '기획', categoryRowSpan: 1, subItem: '', quantity: '월 4회' },
+      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 2회' },
+      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
+      { category: '', subItem: '숏폼', quantity: '월 8편 (본편 기반 발췌)' },
+      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
+      { category: '', subItem: '채널 아트 제작', quantity: '' },
+      { category: '광고 운영', categoryRowSpan: 1, subItem: '조회수 및 댓글', quantity: '' },
+    ]
+  }
+];
+
+const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => void }) => (
+  <section id="pricing" className="py-32 px-6 bg-[#050505] border-t border-white/5 relative">
+    <div className="max-w-7xl mx-auto">
+      {/* Section Header */}
+      <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A5C36]/10 border border-[#0A5C36]/20 rounded-full text-[#0A5C36] text-xs font-bold tracking-widest uppercase mb-6">
+          <Sparkles size={14} /> Service Pricing
+        </div>
+        <h2 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
+          유튜브 콘텐츠 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">가격 안내</span>
+        </h2>
+        <p className="text-white/30 text-sm mt-3 leading-relaxed">
+          채널 성장에 최적화된 기획·촬영·편집·채널 관리 패키지를 확인해보세요.
+        </p>
+      </div>
+
+      {/* Pricing Cards Grid matching user image (IMG_6033.jpeg) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-16">
+        {PRICING_PLANS.map((plan) => (
+          <div
+            key={plan.id}
+            className={`rounded-3xl p-7 md:p-8 flex flex-col justify-between transition-all duration-300 relative ${
+              plan.isPopular
+                ? 'bg-gradient-to-b from-[#0A5C36]/15 via-[#0c0c0c] to-[#080808] border-2 border-[#0A5C36] shadow-[0_0_50px_rgba(10,92,54,0.25)] lg:-translate-y-2'
+                : 'bg-white/[0.02] border border-white/10 hover:border-white/20 shadow-lg'
+            }`}
+          >
+            {plan.isPopular && (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0A5C36] text-white text-xs font-extrabold rounded-full shadow-lg tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+                <Sparkles size={12} /> {plan.badge}
+              </div>
+            )}
+
+            <div>
+              {/* Header Title with vertical accent bar */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-1.5 h-6 bg-[#2B6CB0] rounded-full inline-block" />
+                  <h3 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{plan.name}</h3>
+                </div>
+                {!plan.isPopular && plan.badge && (
+                  <span className="text-[11px] font-medium text-white/40 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                    {plan.badge}
+                  </span>
+                )}
+              </div>
+
+              {/* Price */}
+              <div className="mb-6 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{plan.price}</span>
+                <span className="text-sm font-semibold text-white/60">({plan.vatInfo})</span>
+              </div>
+
+              {/* Table directly replicating IMG_6033.jpeg */}
+              <div className="overflow-hidden rounded-xl border border-white/10 shadow-inner bg-black/50 mb-6">
+                <table className="w-full text-xs md:text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-[#2B6CB0] text-white text-center font-bold">
+                      <th className="py-2.5 px-3 border-r border-blue-400/30 w-[26%] text-center">구분</th>
+                      <th className="py-2.5 px-3 border-r border-blue-400/30 w-[32%] text-center">세부항목</th>
+                      <th className="py-2.5 px-3 w-[42%] text-center">수량</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {plan.tableRows.map((row, rIdx) => (
+                      <tr key={rIdx} className="hover:bg-white/[0.02] transition-colors">
+                        {/* 구분 column with rowSpan */}
+                        {row.categoryRowSpan && row.categoryRowSpan > 0 && (
+                          <td
+                            rowSpan={row.categoryRowSpan}
+                            className="py-2.5 px-3 font-semibold text-white/90 border-r border-white/10 text-center bg-white/[0.015] align-middle"
+                          >
+                            {row.category}
+                          </td>
+                        )}
+                        {/* 세부항목 */}
+                        <td className="py-2.5 px-3 text-white/70 border-r border-white/10 text-center align-middle font-medium">
+                          {row.subItem || '-'}
+                        </td>
+                        {/* 수량 */}
+                        <td className="py-2.5 px-3 text-white/90 text-center align-middle font-medium">
+                          {row.quantity ? (
+                            <span className="text-emerald-300/90 font-medium">{row.quantity}</span>
+                          ) : (
+                            <span className="text-white/20">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => onSelectPlan(plan.name)}
+              className={`w-full py-4 rounded-2xl font-bold text-sm md:text-base transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 ${
+                plan.isPopular
+                  ? 'bg-[#0A5C36] hover:bg-[#0c7042] text-white shadow-[0_10px_30px_rgba(10,92,54,0.3)]'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+              }`}
+            >
+              {plan.name} 견적 상담하기
+              <ArrowRight size={17} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer Notes */}
+      <div className="mt-8 text-center text-xs text-white/30 max-w-xl mx-auto leading-relaxed">
+        * 모든 플랜 금액은 VAT 포함 기준이며, 클라이언트의 업종 및 촬영 성격에 따라 맞춤 구성 조율이 가능합니다.
+      </div>
+    </div>
+  </section>
+);
+
+const ContactSection = ({ settings, initialMessage }: { settings: SiteSettings; initialMessage?: string | null }) => {
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (initialMessage) {
+      setMessage(`[${initialMessage} 견적 상담 문의]\n안녕하세요, ${initialMessage} 진행 관련하여 견적 및 일정 상담 요청드립니다.`);
+    }
+  }, [initialMessage]);
+
+  return (
   <section id="contact" className="py-32 px-6 bg-black">
     <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
       {/* Left Side: Text & Info */}
@@ -512,6 +711,8 @@ const ContactSection = ({ settings }: { settings: SiteSettings }) => (
               <textarea 
                 rows={4}
                 name="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 required
                 placeholder="어떤 프로젝트를 구상 중이신가요?"
                 className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:border-[#0A5C36] outline-none transition-all resize-none placeholder:text-white/10"
@@ -525,7 +726,8 @@ const ContactSection = ({ settings }: { settings: SiteSettings }) => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 const Footer = ({ settings }: { settings: SiteSettings }) => (
   <footer className="py-20 px-6 border-t border-white/10">
@@ -948,6 +1150,7 @@ const AdminDashboard = ({
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [settings, setSettings] = useState<SiteSettings>({
     site_name: "제로원프로덕션",
     hero_title: "세상을 바꾸는 단 하나의 영상\n제로원프로덕션",
@@ -1222,7 +1425,16 @@ export default function App() {
                 </div>
               </section>
               <PortfolioGrid portfolios={portfolios} settings={settings} />
-              <ContactSection settings={settings} />
+              <PricingSection onSelectPlan={(plan) => {
+                setSelectedPlan(plan);
+                setTimeout(() => {
+                  const element = document.getElementById('contact');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }, 50);
+              }} />
+              <ContactSection settings={settings} initialMessage={selectedPlan} />
             </>
           )}
         </main>
