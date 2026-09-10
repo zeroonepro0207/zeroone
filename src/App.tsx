@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment, Component, ReactNode } from 'react';
+import React, { useState, useEffect, useRef, Fragment, Component, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
@@ -733,8 +733,8 @@ const PRICING_PLANS: PricingPlanData[] = [
     name: '플랜B',
     price: '월 3,300,000원',
     vatInfo: 'VAT 포함',
-    isPopular: true,
-    badge: '★ 추천 (POPULAR)',
+    isPopular: false,
+    badge: '',
     tableRows: [
       { category: '기획', categoryRowSpan: 1, subItem: '', quantity: '월 4회' },
       { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 2회' },
@@ -879,107 +879,368 @@ const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => 
 );
 
 const ContactSection = ({ settings, initialMessage }: { settings: SiteSettings; initialMessage?: string | null }) => {
-  const [message, setMessage] = useState('');
+  const [hospitalName, setHospitalName] = useState('');
+  const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
+  const [isOtherChecked, setIsOtherChecked] = useState(false);
+  const [otherPackage, setOtherPackage] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [phone1, setPhone1] = useState('010');
+  const [phone2, setPhone2] = useState('');
+  const [phone3, setPhone3] = useState('');
+  const [videoStyle, setVideoStyle] = useState('');
+  const [memo, setMemo] = useState('');
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  const phone2Ref = useRef<HTMLInputElement>(null);
+  const phone3Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialMessage) {
-      setMessage(`[${initialMessage} 견적 상담 문의]\n안녕하세요, ${initialMessage} 진행 관련하여 견적 및 일정 상담 요청드립니다.`);
+      if (initialMessage.includes('플랜A') || initialMessage.includes('Plan A') || initialMessage.includes('스타터')) {
+        setSelectedPackages(['Plan A (롱폼4, 숏폼4) - 275만 원']);
+      } else if (initialMessage.includes('플랜B') || initialMessage.includes('Plan B')) {
+        setSelectedPackages(['Plan B (롱폼4, 숏폼8) - 330만 원']);
+      } else if (initialMessage.includes('플랜C') || initialMessage.includes('Plan C') || initialMessage.includes('프리미엄')) {
+        setSelectedPackages(['Plan C (롱폼4, 숏폼8, 광고 운영) - 440만 원']);
+      }
     }
   }, [initialMessage]);
 
+  const togglePackage = (pkg: string) => {
+    setSelectedPackages(prev => 
+      prev.includes(pkg) ? prev.filter(p => p !== pkg) : [...prev, pkg]
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!hospitalName.trim()) {
+      e.preventDefault();
+      alert('병원명을 입력해주세요.');
+      return;
+    }
+    const hasPackage = selectedPackages.length > 0 || (isOtherChecked && otherPackage.trim().length > 0);
+    if (!hasPackage) {
+      e.preventDefault();
+      alert('희망패키지를 하나 이상 선택해주세요.');
+      return;
+    }
+    if (!contactPerson.trim()) {
+      e.preventDefault();
+      alert('담당자 성함을 입력해주세요.');
+      return;
+    }
+    if (!phone1.trim() || !phone2.trim() || !phone3.trim()) {
+      e.preventDefault();
+      alert('연락처 3자리를 모두 입력해주세요.');
+      return;
+    }
+    if (!privacyAgreed) {
+      e.preventDefault();
+      alert('개인정보 수집 및 이용에 동의해주세요.');
+      return;
+    }
+  };
+
+  const combinedPackages = [
+    ...selectedPackages,
+    isOtherChecked && otherPackage.trim() ? `기타: ${otherPackage.trim()}` : (isOtherChecked ? '기타' : '')
+  ].filter(Boolean).join(', ');
+
   return (
-  <section id="contact" className="py-32 px-6 bg-black">
-    <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
-      {/* Left Side: Text & Info */}
-      <div className="lg:w-5/12 flex flex-col justify-between py-2 space-y-12">
-        <div>
-          <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-            프로젝트를 함께<br />시작해볼까요?
-          </h2>
-        </div>
+    <section id="contact" className="py-32 px-6 bg-black">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 lg:gap-20 items-start">
+        {/* Left Side: Text & Info */}
+        <div className="lg:w-5/12 flex flex-col justify-between space-y-12 lg:sticky lg:top-32">
+          <div>
+            <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+              프로젝트를 함께<br />시작해볼까요?
+            </h2>
+          </div>
 
-        <div className="space-y-6">
-          <div className="flex items-center gap-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#0A5C36]/20 border border-[#0A5C36]/30 flex items-center justify-center text-[#0A5C36]">
-              <Mail size={24} />
+          <div className="space-y-6">
+            <div className="flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#0A5C36]/20 border border-[#0A5C36]/30 flex items-center justify-center text-[#0A5C36]">
+                <Mail size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Email</p>
+                <p className="text-lg font-medium">{settings.contact_email}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Email</p>
-              <p className="text-lg font-medium">{settings.contact_email}</p>
+            <div className="flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#0A5C36]/20 border border-[#0A5C36]/30 flex items-center justify-center text-[#0A5C36]">
+                <Smartphone size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Phone</p>
+                <p className="text-lg font-medium">{settings.contact_phone}</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#0A5C36]/20 border border-[#0A5C36]/30 flex items-center justify-center text-[#0A5C36]">
-              <Smartphone size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Phone</p>
-              <p className="text-lg font-medium">{settings.contact_phone}</p>
-            </div>
-          </div>
         </div>
-      </div>
 
-      {/* Right Side: Form Card */}
-      <div className="lg:w-7/12">
-        <div className="p-8 md:p-12 rounded-[40px] bg-white/[0.03] border border-white/10 backdrop-blur-sm">
+        {/* Right Side: Exact Form from Attached Image */}
+        <div className="lg:w-7/12 w-full">
           <form 
             action="https://formspree.io/f/mojkjdwq" 
             method="POST"
-            className="space-y-8"
+            onSubmit={handleSubmit}
+            className="space-y-7"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-white/40 ml-1">이름</label>
-                <input 
-                  type="text" 
-                  name="name"
-                  required
-                  placeholder="홍길동"
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:border-[#0A5C36] outline-none transition-all placeholder:text-white/10"
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-white/40 ml-1">연락처</label>
-                <input 
-                  type="text" 
-                  name="phone"
-                  required
-                  placeholder="010-0000-0000"
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:border-[#0A5C36] outline-none transition-all placeholder:text-white/10"
-                />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-white/40 ml-1">이메일</label>
+            {/* Hidden inputs to format Formspree email submission cleanly */}
+            <input type="hidden" name="병원명" value={hospitalName} />
+            <input type="hidden" name="희망패키지" value={combinedPackages} />
+            <input type="hidden" name="담당자 성함" value={contactPerson} />
+            <input type="hidden" name="연락처" value={`${phone1}-${phone2}-${phone3}`} />
+            <input type="hidden" name="희망하는 영상 스타일" value={videoStyle} />
+            <input type="hidden" name="남기고 싶은 메모" value={memo} />
+            <input type="hidden" name="개인정보수집 동의" value={privacyAgreed ? '동의함' : '미동의'} />
+
+            {/* 1. 병원명 • */}
+            <div className="space-y-2">
+              <label className="text-[15px] font-medium text-white flex items-center">
+                병원명 <span className="text-[#E05656] ml-1 text-sm font-bold">•</span>
+              </label>
               <input 
-                type="email" 
-                name="email"
+                type="text" 
+                name="raw_hospital"
                 required
-                placeholder="example@email.com"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:border-[#0A5C36] outline-none transition-all placeholder:text-white/10"
+                value={hospitalName}
+                onChange={(e) => setHospitalName(e.target.value)}
+                className="w-full bg-black border border-white/20 rounded-md px-4 py-3 text-white text-sm focus:border-white outline-none transition-colors"
               />
             </div>
+
+            {/* 2. 희망패키지 • */}
             <div className="space-y-3">
-              <label className="text-sm font-bold text-white/40 ml-1">프로젝트 내용</label>
-              <textarea 
-                rows={4}
-                name="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+              <label className="text-[15px] font-medium text-white flex items-center">
+                희망패키지 <span className="text-[#E05656] ml-1 text-sm font-bold">•</span>
+              </label>
+              <div className="space-y-3 pt-0.5">
+                {[
+                  'Plan A (롱폼4, 숏폼4) - 275만 원',
+                  'Plan B (롱폼4, 숏폼8) - 330만 원',
+                  'Plan C (롱폼4, 숏폼8, 광고 운영) - 440만 원',
+                ].map((pkg) => {
+                  const isChecked = selectedPackages.includes(pkg);
+                  return (
+                    <div 
+                      key={pkg} 
+                      onClick={() => togglePackage(pkg)}
+                      className="flex items-center gap-3 cursor-pointer select-none text-[15px] text-white font-medium group"
+                    >
+                      <div className={`w-[22px] h-[22px] rounded-[5px] border flex items-center justify-center transition-colors flex-shrink-0 ${
+                        isChecked ? 'bg-white border-white text-black' : 'border-white/40 bg-transparent group-hover:border-white'
+                      }`}>
+                        {isChecked && <Check size={14} className="stroke-[3]" />}
+                      </div>
+                      <span>{pkg}</span>
+                    </div>
+                  );
+                })}
+
+                {/* 기타: + 직접입력 box */}
+                <div className="space-y-2 pt-0.5">
+                  <div 
+                    onClick={() => setIsOtherChecked(!isOtherChecked)}
+                    className="flex items-center gap-3 cursor-pointer select-none text-[15px] text-white font-medium group"
+                  >
+                    <div className={`w-[22px] h-[22px] rounded-[5px] border flex items-center justify-center transition-colors flex-shrink-0 ${
+                      isOtherChecked ? 'bg-white border-white text-black' : 'border-white/40 bg-transparent group-hover:border-white'
+                    }`}>
+                      {isOtherChecked && <Check size={14} className="stroke-[3]" />}
+                    </div>
+                    <span>기타:</span>
+                  </div>
+                  <div className="pl-[34px]">
+                    <input 
+                      type="text"
+                      placeholder="직접입력"
+                      value={otherPackage}
+                      onChange={(e) => {
+                        setOtherPackage(e.target.value);
+                        if (!isOtherChecked && e.target.value) setIsOtherChecked(true);
+                      }}
+                      className="w-full max-w-[340px] bg-black border border-white/20 rounded-md px-4 py-2.5 text-white text-sm focus:border-white outline-none transition-colors placeholder:text-white/30"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. 담당자 성함 • */}
+            <div className="space-y-2">
+              <label className="text-[15px] font-medium text-white flex items-center">
+                담당자 성함 <span className="text-[#E05656] ml-1 text-sm font-bold">•</span>
+              </label>
+              <input 
+                type="text" 
+                name="raw_name"
                 required
-                placeholder="어떤 프로젝트를 구상 중이신가요?"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:border-[#0A5C36] outline-none transition-all resize-none placeholder:text-white/10"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                className="w-full bg-black border border-white/20 rounded-md px-4 py-3 text-white text-sm focus:border-white outline-none transition-colors"
               />
             </div>
-            <button type="submit" className="w-full py-6 bg-[#0A5C36] hover:bg-[#0c7042] text-white font-bold rounded-2xl transition-all shadow-[0_20px_40px_rgba(10,92,54,0.2)] text-lg">
-              문의 보내기
-            </button>
+
+            {/* 4. 연락처 • (3 separate compact inputs) */}
+            <div className="space-y-2">
+              <label className="text-[15px] font-medium text-white flex items-center">
+                연락처 <span className="text-[#E05656] ml-1 text-sm font-bold">•</span>
+              </label>
+              <div className="flex items-center gap-2.5">
+                <input 
+                  type="tel"
+                  maxLength={4}
+                  required
+                  value={phone1}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setPhone1(val);
+                    if (val.length >= 3) phone2Ref.current?.focus();
+                  }}
+                  className="w-20 sm:w-24 bg-black border border-white/20 rounded-md px-3 py-3 text-white text-center text-sm focus:border-white outline-none transition-colors"
+                />
+                <input 
+                  ref={phone2Ref}
+                  type="tel"
+                  maxLength={4}
+                  required
+                  value={phone2}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setPhone2(val);
+                    if (val.length >= 4) phone3Ref.current?.focus();
+                  }}
+                  className="w-24 sm:w-28 bg-black border border-white/20 rounded-md px-3 py-3 text-white text-center text-sm focus:border-white outline-none transition-colors"
+                />
+                <input 
+                  ref={phone3Ref}
+                  type="tel"
+                  maxLength={4}
+                  required
+                  value={phone3}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setPhone3(val);
+                  }}
+                  className="w-24 sm:w-28 bg-black border border-white/20 rounded-md px-3 py-3 text-white text-center text-sm focus:border-white outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* 5. 희망하는 영상 스타일 (레퍼런스가 있으신 경우 링크를 남겨주세요) */}
+            <div className="space-y-2">
+              <label className="text-[15px] font-medium text-white block">
+                희망하는 영상 스타일 (레퍼런스가 있으신 경우 링크를 남겨주세요)
+              </label>
+              <input 
+                type="text"
+                name="raw_video_style"
+                value={videoStyle}
+                onChange={(e) => setVideoStyle(e.target.value)}
+                className="w-full bg-black border border-white/20 rounded-md px-4 py-3 text-white text-sm focus:border-white outline-none transition-colors"
+              />
+            </div>
+
+            {/* 6. 남기고 싶은 메모 (예 : 상담은 오후 2시 이후 가능) */}
+            <div className="space-y-2">
+              <label className="text-[15px] font-medium text-white block">
+                남기고 싶은 메모 (예 : 상담은 오후 2시 이후 가능)
+              </label>
+              <input 
+                type="text"
+                name="raw_memo"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                className="w-full bg-black border border-white/20 rounded-md px-4 py-3 text-white text-sm focus:border-white outline-none transition-colors"
+              />
+            </div>
+
+            {/* 7. 개인정보수집 동의 • */}
+            <div className="space-y-2 pt-2">
+              <label className="text-[15px] font-medium text-white flex items-center">
+                개인정보수집 동의 <span className="text-[#E05656] ml-1 text-sm font-bold">•</span>
+              </label>
+              <div className="flex items-center gap-3 select-none text-[15px] text-white">
+                <div 
+                  onClick={() => setPrivacyAgreed(!privacyAgreed)}
+                  className={`w-[22px] h-[22px] rounded-[5px] border flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
+                    privacyAgreed ? 'bg-white border-white text-black' : 'border-white/40 bg-transparent hover:border-white'
+                  }`}
+                >
+                  {privacyAgreed && <Check size={14} className="stroke-[3]" />}
+                </div>
+                <span>
+                  <strong className="font-bold">(필수)</strong>{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="underline hover:text-white/80 cursor-pointer font-bold inline"
+                  >
+                    개인정보 수집 및 이용
+                  </button>
+                  에 동의합니다.
+                </span>
+              </div>
+            </div>
+
+            {/* 8. 작성 버튼 (Centered submit button) */}
+            <div className="pt-6 flex justify-center">
+              <button 
+                type="submit"
+                className="w-48 sm:w-56 py-3 bg-black border border-white text-white text-sm font-medium tracking-wider hover:bg-white hover:text-black transition-colors duration-200 cursor-pointer"
+              >
+                작성
+              </button>
+            </div>
           </form>
         </div>
       </div>
-    </div>
-  </section>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowPrivacyModal(false)}
+        >
+          <div 
+            className="bg-[#121212] border border-white/20 rounded-2xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold">개인정보 수집 및 이용 동의</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowPrivacyModal(false)}
+                className="text-white/50 hover:text-white p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="text-xs text-white/70 space-y-2.5 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+              <p><strong>1. 수집 항목:</strong> 병원명, 희망 패키지, 담당자 성함, 연락처, 희망 영상 스타일, 메모</p>
+              <p><strong>2. 수집 목적:</strong> 병원 유튜브 채널 맞춤 견적 산정 및 상담 연락</p>
+              <p><strong>3. 보유 기간:</strong> 문의 접수일로부터 1년간 보관 후 지체 없이 안전하게 파기</p>
+              <p><strong>4. 동의 거부권:</strong> 개인정보 수집 및 이용 동의를 거부하실 수 있으나, 미동의 시 상담 및 견적 안내가 제한될 수 있습니다.</p>
+            </div>
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setPrivacyAgreed(true);
+                  setShowPrivacyModal(false);
+                }}
+                className="px-5 py-2 bg-white text-black font-bold text-xs rounded-lg hover:bg-white/90 transition-all cursor-pointer"
+              >
+                동의하고 닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 
