@@ -698,9 +698,10 @@ const PortfolioGrid = ({ portfolios, settings }: { portfolios: Portfolio[], sett
 
 interface PlanTableRow {
   category: string;
-  categoryRowSpan?: number;
-  subItem?: string;
-  quantity?: string;
+  categoryDetail?: string;
+  spec: string;
+  isHighlight?: boolean;
+  isDimmed?: boolean;
 }
 
 interface PricingPlanData {
@@ -710,6 +711,7 @@ interface PricingPlanData {
   vatInfo: string;
   isPopular?: boolean;
   badge?: string;
+  ctaText: string;
   tableRows: PlanTableRow[];
 }
 
@@ -717,49 +719,50 @@ const PRICING_PLANS: PricingPlanData[] = [
   {
     id: 'plan-a',
     name: '플랜A',
-    price: '월 2,750,000원',
-    vatInfo: 'VAT 포함',
+    price: '월 250만 원',
+    vatInfo: '(VAT 별도 / 부가세 포함 275만 원)',
     isPopular: false,
-    badge: '스타터 플랜',
+    ctaText: '스타터 상담하기',
     tableRows: [
-      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 1회' },
-      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
-      { category: '', subItem: '숏폼', quantity: '월 4편 (본편 기반 발췌)' },
-      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
-      { category: '', subItem: '채널 아트 제작', quantity: '' },
+      { category: '기획', spec: '병원 전달 원고 기반 가이드' },
+      { category: '촬영', spec: '월 1회 (집중 촬영)' },
+      { category: '편집 - 롱폼', spec: '월 4편 (편당 5분 내외)' },
+      { category: '편집 - 숏폼', spec: '월 4편 (본편 기반 발췌)' },
+      { category: '채널 관리', categoryDetail: '업로드 대행 / 채널 아트 제작', spec: '기본 포함' },
+      { category: '광고 운영', categoryDetail: '조회수 및 댓글', spec: '미제공', isDimmed: true },
     ]
   },
   {
     id: 'plan-b',
     name: '플랜B',
-    price: '월 3,300,000원',
-    vatInfo: 'VAT 포함',
-    isPopular: false,
-    badge: '',
+    price: '월 300만 원',
+    vatInfo: '(VAT 별도 / 부가세 포함 330만 원)',
+    isPopular: true,
+    badge: '[BEST] 가장 추천',
+    ctaText: '플랜B로 시작하기 (추천)',
     tableRows: [
-      { category: '기획', categoryRowSpan: 1, subItem: '', quantity: '월 4회' },
-      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 2회' },
-      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
-      { category: '', subItem: '숏폼', quantity: '월 8편 (본편 기반 발췌)' },
-      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
-      { category: '', subItem: '채널 아트 제작', quantity: '' },
+      { category: '기획', spec: '전문 맞춤 기획 (월 4회)', isHighlight: true },
+      { category: '촬영', spec: '월 2회 (격주 방문)', isHighlight: true },
+      { category: '편집 - 롱폼', spec: '월 4편' },
+      { category: '편집 - 숏폼', spec: '월 8편 (주 2회 업로드 규격)', isHighlight: true },
+      { category: '채널 관리', categoryDetail: '업로드 대행 / 채널 아트 제작', spec: '기본 포함' },
+      { category: '광고 운영', categoryDetail: '조회수 및 댓글', spec: '미제공', isDimmed: true },
     ]
   },
   {
     id: 'plan-c',
     name: '플랜C',
-    price: '월 4,400,000원',
-    vatInfo: 'VAT 포함',
+    price: '월 400만 원',
+    vatInfo: '(VAT 별도 / 부가세 포함 440만 원)',
     isPopular: false,
-    badge: '프리미엄 올인원',
+    ctaText: '올인원 전담 상담하기',
     tableRows: [
-      { category: '기획', categoryRowSpan: 1, subItem: '', quantity: '월 4회' },
-      { category: '촬영', categoryRowSpan: 1, subItem: '', quantity: '월 2회' },
-      { category: '편집', categoryRowSpan: 2, subItem: '롱폼', quantity: '월 4편' },
-      { category: '', subItem: '숏폼', quantity: '월 8편 (본편 기반 발췌)' },
-      { category: '채널 관리', categoryRowSpan: 2, subItem: '업로드 대행', quantity: '' },
-      { category: '', subItem: '채널 아트 제작', quantity: '' },
-      { category: '광고 운영', categoryRowSpan: 1, subItem: '조회수 및 댓글', quantity: '' },
+      { category: '기획', spec: '전문 맞춤 기획 (월 4회)' },
+      { category: '촬영', spec: '월 2회 (격주 방문)' },
+      { category: '편집 - 롱폼', spec: '월 4편' },
+      { category: '편집 - 숏폼', spec: '월 8편 (주 2회 업로드 규격)' },
+      { category: '채널 관리', categoryDetail: '업로드 대행 / 채널 아트 제작', spec: '기본 포함' },
+      { category: '광고 운영', categoryDetail: '조회수 및 댓글', spec: '유튜브 타깃 광고 세팅 + 실시간 댓글 모니터링', isHighlight: true },
     ]
   }
 ];
@@ -771,80 +774,96 @@ const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => 
       <div className="text-center max-w-3xl mx-auto mb-12 md:mb-14">
         <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
           <span className="text-white">PRODUCTION </span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A5C36] to-emerald-400">PLANS</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#22c55e] to-emerald-400">PLANS</span>
         </h2>
       </div>
 
-      {/* Pricing Cards Grid matching user image (IMG_6033.jpeg) */}
+      {/* Pricing Cards Grid with Decoy Effect (Plan B Highlight) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-16">
         {PRICING_PLANS.map((plan) => (
           <div
             key={plan.id}
             className={`rounded-3xl p-7 md:p-8 flex flex-col justify-between transition-all duration-300 relative ${
               plan.isPopular
-                ? 'bg-gradient-to-b from-[#0A5C36]/15 via-[#0c0c0c] to-[#080808] border-2 border-[#0A5C36] shadow-[0_0_50px_rgba(10,92,54,0.25)] lg:-translate-y-2'
+                ? 'bg-gradient-to-b from-[#22c55e]/15 via-[#0c140e] to-[#060606] border-[2.5px] border-[#22c55e] shadow-[0_0_50px_rgba(34,197,94,0.3)] lg:-translate-y-2.5 ring-1 ring-[#22c55e]/30'
                 : 'bg-white/[0.02] border border-white/10 hover:border-white/20 shadow-lg'
             }`}
           >
-            {plan.isPopular && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0A5C36] text-white text-xs font-extrabold rounded-full shadow-lg tracking-wider flex items-center gap-1.5 whitespace-nowrap">
-                <Sparkles size={12} /> {plan.badge}
+            {/* Top-Right Eye-catching BEST Badge for Plan B */}
+            {plan.isPopular && plan.badge && (
+              <div className="absolute -top-3.5 right-6 px-4 py-1.5 bg-[#22c55e] text-black text-xs font-black rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] tracking-wider flex items-center gap-1.5 z-20">
+                <Sparkles size={13} className="fill-black text-black" />
+                <span>{plan.badge}</span>
               </div>
             )}
 
             <div>
               {/* Header Title with vertical accent bar */}
-              <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-6 bg-[#2B6CB0] rounded-full inline-block" />
+                  <span className={`w-1.5 h-6 rounded-full inline-block ${
+                    plan.isPopular 
+                      ? 'bg-[#22c55e] shadow-[0_0_12px_#22c55e]' 
+                      : 'bg-[#2B6CB0]'
+                  }`} />
                   <h3 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{plan.name}</h3>
                 </div>
-                {!plan.isPopular && plan.badge && (
-                  <span className="text-[11px] font-medium text-white/40 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                    {plan.badge}
+              </div>
+
+              {/* Price: Main simplified price + Subtitle VAT detail */}
+              <div className="mb-6 flex flex-col gap-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                    {plan.price}
                   </span>
-                )}
+                </div>
+                <span className="text-xs sm:text-[13px] font-medium text-white/50">
+                  {plan.vatInfo}
+                </span>
               </div>
 
-              {/* Price */}
-              <div className="mb-6 flex items-baseline gap-1.5 flex-wrap">
-                <span className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{plan.price}</span>
-                <span className="text-sm font-semibold text-white/60">({plan.vatInfo})</span>
-              </div>
-
-              {/* Table directly replicating IMG_6033.jpeg */}
-              <div className="overflow-hidden rounded-xl border border-white/10 shadow-inner bg-black/50 mb-6">
+              {/* Table with full specifications (no empty cells, no hyphens) */}
+              <div className={`overflow-hidden rounded-xl border shadow-inner bg-black/60 mb-6 ${
+                plan.isPopular ? 'border-[#22c55e]/30 shadow-[0_0_20px_rgba(34,197,94,0.1)]' : 'border-white/10'
+              }`}>
                 <table className="w-full text-xs md:text-sm border-collapse">
                   <thead>
-                    <tr className="bg-[#2B6CB0] text-white text-center font-bold">
-                      <th className="py-2.5 px-3 border-r border-blue-400/30 w-[26%] text-center">구분</th>
-                      <th className="py-2.5 px-3 border-r border-blue-400/30 w-[32%] text-center">세부항목</th>
-                      <th className="py-2.5 px-3 w-[42%] text-center">수량</th>
+                    <tr className={
+                      plan.isPopular 
+                        ? 'bg-[#0e3b23] text-[#22c55e] text-center font-bold border-b border-[#22c55e]/30' 
+                        : 'bg-white/10 text-white/90 text-center font-bold border-b border-white/10'
+                    }>
+                      <th className="py-2.5 px-3 border-r border-white/10 w-[38%] text-center font-bold">구분</th>
+                      <th className="py-2.5 px-3 w-[62%] text-center font-bold">상세 스펙</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
                     {plan.tableRows.map((row, rIdx) => (
                       <tr key={rIdx} className="hover:bg-white/[0.02] transition-colors">
-                        {/* 구분 column with rowSpan */}
-                        {row.categoryRowSpan && row.categoryRowSpan > 0 && (
-                          <td
-                            rowSpan={row.categoryRowSpan}
-                            className="py-2.5 px-3 font-semibold text-white/90 border-r border-white/10 text-center bg-white/[0.015] align-middle"
-                          >
-                            {row.category}
-                          </td>
-                        )}
-                        {/* 세부항목 */}
-                        <td className="py-2.5 px-3 text-white/70 border-r border-white/10 text-center align-middle font-medium">
-                          {row.subItem || '-'}
-                        </td>
-                        {/* 수량 */}
-                        <td className="py-2.5 px-3 text-white/90 text-center align-middle font-medium">
-                          {row.quantity ? (
-                            <span className="text-emerald-300/90 font-medium">{row.quantity}</span>
-                          ) : (
-                            <span className="text-white/20">-</span>
+                        {/* 구분 컬럼 */}
+                        <td className="py-3 px-3 text-center align-middle font-semibold text-white/90 border-r border-white/10 bg-white/[0.015]">
+                          <div className="text-xs md:text-sm font-semibold text-white/95">{row.category}</div>
+                          {row.categoryDetail && (
+                            <div className="text-[10.5px] sm:text-[11px] text-white/45 font-normal mt-0.5 leading-tight">
+                              {row.categoryDetail}
+                            </div>
                           )}
+                        </td>
+                        {/* 상세 스펙 컬럼 */}
+                        <td className="py-3 px-3 text-center align-middle">
+                          <span
+                            className={`text-xs md:text-sm leading-snug font-medium ${
+                              row.isDimmed
+                                ? 'text-white/30'
+                                : plan.isPopular && row.isHighlight
+                                ? 'text-[#22c55e] font-semibold'
+                                : row.isHighlight
+                                ? 'text-emerald-300 font-semibold'
+                                : 'text-white/90'
+                            }`}
+                          >
+                            {row.spec}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -853,25 +872,25 @@ const PricingSection = ({ onSelectPlan }: { onSelectPlan: (planName: string) => 
               </div>
             </div>
 
-            {/* CTA Button */}
+            {/* CTA Button: Plan B highlighted in neon green, Plan A & C dark gray */}
             <button
               onClick={() => onSelectPlan(plan.name)}
               className={`w-full py-4 rounded-2xl font-bold text-sm md:text-base transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 ${
                 plan.isPopular
-                  ? 'bg-[#0A5C36] hover:bg-[#0c7042] text-white shadow-[0_10px_30px_rgba(10,92,54,0.3)]'
-                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                  ? 'bg-[#22c55e] hover:bg-[#16a34a] text-black font-extrabold shadow-[0_0_25px_rgba(34,197,94,0.45)] hover:shadow-[0_0_35px_rgba(34,197,94,0.65)] hover:scale-[1.02] active:scale-95'
+                  : 'bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95'
               }`}
             >
-              {plan.name} 견적 상담하기
-              <ArrowRight size={17} />
+              <span>{plan.ctaText}</span>
+              <ArrowRight size={17} className={plan.isPopular ? 'text-black stroke-[2.5]' : 'text-white/80'} />
             </button>
           </div>
         ))}
       </div>
 
       {/* Footer Notes */}
-      <div className="mt-8 text-center text-xs text-white/30 max-w-xl mx-auto leading-relaxed">
-        * 모든 플랜 금액은 VAT 포함 기준이며, 클라이언트의 업종 및 촬영 성격에 따라 맞춤 구성 조율이 가능합니다.
+      <div className="mt-8 text-center text-xs text-white/35 max-w-xl mx-auto leading-relaxed">
+        * 모든 플랜 금액은 VAT 별도 표기 및 부가세 포함 금액이 병기되어 있으며, 클라이언트의 업종 및 촬영 성격에 따라 맞춤 구성 조율이 가능합니다.
       </div>
     </div>
   </section>
